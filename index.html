@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Czysta Liga - Profesjonalne sprzątanie</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.js">
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fb; color: #1e3a8a; }
+        .page-wrapper { width: 100%; max-width: 100%; margin: 0; padding: 0; background-color: white; overflow-x: hidden; }
+
+        .hero-carousel-container { position: relative; width: 100%; overflow: hidden; background: #1e40af; min-height: 220px; }
+        .hero-carousel { display: flex; transition: transform 0.4s ease-in-out; }
+        .carousel-slide { min-width: 100%; position: relative; min-height: 220px; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #1e40af; text-align: center; padding: 20px; color: white; }
+        .carousel-slide div { color: white; }
+        .carousel-slide .light-text { color: #e0e7ff; }
+        .carousel-dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; z-index: 10; }
+        .carousel-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.4); cursor: pointer; transition: all 0.2s; }
+        .carousel-dot.active { background: white; width: 24px; border-radius: 10px; }
+        .carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(30,64,175,0.6); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; }
+        .carousel-arrow.left { left: 10px; }
+        .carousel-arrow.right { right: 10px; }
+        .carousel-arrow:hover { background: rgba(30,64,175,0.9); }
+
+        .why-us-box { background: #dbeafe; border-radius: 24px; padding: 20px; margin: 20px 0; color: #1e3a8a; }
+
+        .client-type-selector { display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; border-radius: 12px; padding: 4px; }
+        .client-type-btn { flex: 1; text-align: center; padding: 10px; font-weight: bold; cursor: pointer; background: #f1f5f9; border-radius: 10px; transition: all 0.2s; color: #64748b; border: none; font-size: 14px; }
+        .client-type-btn.active { background: #1e40af; color: white; }
+
+        .why-us-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #cbd5e1; }
+        .why-us-tab { flex: 1; text-align: center; padding: 12px; font-weight: bold; cursor: pointer; background: #f1f5f9; border-radius: 12px 12px 0 0; transition: all 0.2s; color: #64748b; }
+        .why-us-tab.active { background: #1e40af; color: white; }
+        .why-us-tab-content { display: none; }
+        .why-us-tab-content.active { display: block; }
+
+        .calc-row-inline { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .calc-row-inline select, .calc-row-inline input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #1e40af; font-size: 14px; background: white; color: #1e3a8a; }
+        .calc-price-result { background: white; border-radius: 16px; padding: 12px; text-align: center; margin-top: 12px; font-size: 20px; font-weight: bold; color: #1e40af; border: 1px solid #1e40af; }
+
+        .home-calendar-container { background: white; border-radius: 16px; padding: 12px; margin-top: 0; }
+        .home-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .home-calendar-nav { background: #1e40af; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
+        .home-calendar-nav.disabled { background: #cbd5e1; cursor: not-allowed; opacity: 0.5; }
+        .home-calendar-weekdays { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; margin-bottom: 12px; font-weight: bold; }
+        .home-calendar-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+        .home-calendar-day { text-align: center; padding: 10px; border-radius: 40px; cursor: pointer; background: #f8fafc; }
+        .home-calendar-day.available { background: #dbeafe; }
+        .home-calendar-day.selected { background: #1e40af; color: white; }
+        .home-calendar-day.disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+        .home-hours-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 16px; }
+        .home-hour-btn { background: #dbeafe; border: none; padding: 8px; border-radius: 40px; cursor: pointer; }
+        .home-hour-btn.busy { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+        .home-hour-btn.selected { background: #1e40af; color: white; }
+
+        .legend-circle { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 6px; }
+        .legend-circle.blue { background: #1e40af; }
+        .legend-circle.gray { background: #94a3b8; }
+        .availability-legend { display: flex; gap: 20px; justify-content: center; margin: 16px 0; font-size: 12px; flex-wrap: wrap; color: #1e3a8a; }
+
+        .about-founder-box { background: #eef2ff; border-radius: 20px; padding: 20px; margin: 20px 0; display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+        .about-founder-photo { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; border: 3px solid #1e40af; flex-shrink: 0; }
+        .about-founder-text { flex: 1; min-width: 200px; }
+        .about-founder-text h3 { font-size: 20px; font-weight: bold; color: #1e3a8a; margin-bottom: 8px; }
+        .about-founder-text .founder-name { font-size: 15px; font-weight: 700; color: #1e40af; margin-bottom: 10px; }
+        .about-founder-text p { font-size: 14px; color: #1e3a8a; line-height: 1.6; }
+        .about-firm-section { margin: 20px 0; }
+        .about-firm-section h3 { font-size: 20px; font-weight: bold; color: #1e3a8a; margin-bottom: 12px; }
+        .about-firm-section p, .about-firm-section ul { font-size: 14px; color: #1e3a8a; line-height: 1.6; }
+        .about-firm-section ul { padding-left: 20px; margin: 8px 0; }
+        .about-firm-section ul li { margin-bottom: 4px; color: #1e3a8a; }
+
+        .calendar-view-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 3700; display: flex; flex-direction: column; visibility: hidden; opacity: 0; transition: opacity 0.3s ease; overflow-y: auto; padding: 20px; }
+        .calendar-view-modal.active { visibility: visible; opacity: 1; }
+        .calendar-view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .calendar-view-close { font-size: 28px; font-weight: bold; color: #1e40af; cursor: pointer; background: none; border: none; }
+        .view-calendar-grid { background: white; border-radius: 20px; border: 1px solid #cbd5e1; padding: 12px; }
+        .btn-order-now { background: #1e40af; color: white; border: none; padding: 14px 24px; border-radius: 40px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 20px auto 0; display: block; width: 80%; max-width: 300px; text-align: center; }
+
+        .blur-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 100, 200, 0.55); backdrop-filter: blur(10px); z-index: 2000; visibility: hidden; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
+        .blur-overlay.active { visibility: visible; opacity: 1; pointer-events: auto; }
+        .sharp-and-big { transform: scale(1.08); transition: transform 0.2s ease; position: relative; z-index: 2001; display: block; }
+
+        .login-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 340px; background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); z-index: 2100; visibility: hidden; opacity: 0; transition: all 0.25s ease; pointer-events: none; padding: 20px; font-family: 'Segoe UI', Arial, sans-serif; }
+        .login-modal.active { visibility: visible; opacity: 1; pointer-events: auto; }
+        .modal-close { position: absolute; top: 12px; right: 16px; font-size: 28px; font-weight: bold; color: #1e40af; cursor: pointer; background: none; border: none; line-height: 1; }
+        .modal-tabs { display: flex; gap: 16px; margin-bottom: 24px; margin-top: 8px; }
+        .tab-btn { background: none; border: none; font-size: 18px; font-weight: 600; padding: 6px 0; color: #64748b; cursor: pointer; position: relative; }
+        .tab-btn.active { color: #1e40af; }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 3px; background: #1e40af; border-radius: 3px; }
+        .input-group { margin-bottom: 18px; }
+        .input-group label { display: block; font-size: 14px; font-weight: 600; color: #1e3a8a; margin-bottom: 6px; }
+        input, select { width: 100%; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 16px; font-size: 15px; outline: none; background: #f8fafc; color: #1e3a8a; transition: border-color 0.2s, box-shadow 0.2s; }
+        input:focus, select:focus { border-color: #1e40af; }
+        input.highlight-error, select.highlight-error { border-color: #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.2); background-color: #fee2e2; }
+        .login-submit-btn { width: 100%; background: #1e40af; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; margin-top: 8px; cursor: pointer; }
+        .error-message-below { text-align: center; margin-top: 16px; font-size: 13px; color: #dc2626; background: #fee2e2; padding: 8px; border-radius: 20px; display: none; }
+        .error-message-below.show { display: block; }
+
+        .client-type-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 3500; display: flex; flex-direction: column; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: opacity 0.3s ease; padding: 30px; gap: 24px; }
+        .client-type-overlay.active { visibility: visible; opacity: 1; }
+        .client-type-close { position: absolute; top: 20px; right: 24px; font-size: 28px; font-weight: bold; color: #1e40af; cursor: pointer; background: none; border: none; line-height: 1; }
+        .client-type-question { font-size: 22px; font-weight: 700; color: #1e3a8a; text-align: center; }
+        .client-type-big-btn { width: 100%; max-width: 320px; padding: 20px; border-radius: 16px; border: none; background: #1e40af; font-size: 18px; font-weight: 700; color: white; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .client-type-big-btn:hover { background: #1e3a8a; }
+
+        .account-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 320px; background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); z-index: 2100; visibility: hidden; opacity: 0; transition: all 0.25s ease; pointer-events: none; padding: 24px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .account-modal.active { visibility: visible; opacity: 1; pointer-events: auto; }
+        .account-modal-btn { width: 100%; background: #1e40af; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; }
+        .account-modal-btn.logout { background: #dc2626; }
+        .account-limits { background: #f8fafc; border-radius: 12px; padding: 12px; font-size: 13px; color: #1e3a8a; text-align: center; }
+
+        .history-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 3600; display: flex; flex-direction: column; visibility: hidden; opacity: 0; transition: opacity 0.3s ease; overflow-y: auto; padding: 20px; }
+        .history-overlay.active { visibility: visible; opacity: 1; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid #cbd5e1; }
+        .history-title { font-size: 20px; font-weight: bold; color: #1e40af; }
+        .history-close-btn { font-size: 28px; font-weight: bold; color: #1e40af; cursor: pointer; background: none; border: none; line-height: 1; }
+        .order-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+        .order-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+        .order-card-title { font-size: 15px; font-weight: 700; color: #1e3a8a; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .status-badge.pending { background: #fef3c7; color: #92400e; }
+        .status-badge.confirmed { background: #dcfce7; color: #166534; }
+        .status-badge.rejected { background: #fee2e2; color: #991b1b; }
+        .status-badge.cancelled { background: #f1f5f9; color: #475569; }
+        .order-card-details { font-size: 13px; color: #1e3a8a; line-height: 1.5; }
+        .order-card-details span { font-weight: 600; color: #1e3a8a; }
+        .order-card-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; justify-content: flex-end; }
+        .admin-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; color: white; }
+        .admin-btn.confirm { background: #16a34a; }
+        .admin-btn.reject { background: #dc2626; }
+        .cancel-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; background: #dc2626; color: white; }
+        .cancel-btn.disabled { background: #94a3b8; cursor: not-allowed; }
+        .change-date-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; background: #1e40af; color: white; }
+        .change-date-btn.disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .subscription-steps { margin-top: 12px; padding: 8px 0 0 16px; border-left: 3px solid #1e40af; }
+        .sub-step { font-size: 12px; padding: 6px 0 6px 20px; position: relative; color: #64748b; }
+        .sub-step::before { content: "●"; position: absolute; left: -8px; top: 6px; font-size: 12px; color: #cbd5e1; }
+        .sub-step.done { color: #1e40af; font-weight: bold; }
+        .sub-step.done::before { color: #1e40af; }
+        .sub-step.current { color: #1e40af; font-weight: bold; }
+        .sub-step.current::before { color: #1e40af; font-size: 14px; }
+
+        .order-page-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 3000; display: flex; flex-direction: column; visibility: hidden; opacity: 0; transition: opacity 0.2s ease; overflow-y: auto; padding: 20px; }
+        .order-page-overlay.active { visibility: visible; opacity: 1; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #cbd5e1; }
+        .order-title-left { font-size: 20px; font-weight: bold; color: #1e40af; }
+        .close-order-btn { font-size: 28px; font-weight: bold; color: #1e40af; cursor: pointer; background: none; border: none; line-height: 1; }
+        .order-section { margin-top: 24px; }
+
+        .subscription-toggle { display: flex; gap: 0; margin-bottom: 20px; background: #f1f5f9; border-radius: 12px; padding: 4px; }
+        .subscription-toggle.highlight-error { border: 2px solid #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.2); background-color: #fee2e2; border-radius: 12px; }
+        .subscription-option { flex: 1; text-align: center; padding: 10px 8px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-radius: 10px; transition: all 0.2s; position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .subscription-option.active { background: #1e40af; color: white; box-shadow: 0 2px 8px rgba(30,64,175,0.3); }
+        .info-icon-small { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; flex-shrink: 0; background: rgba(255,255,255,0.3); color: white; }
+        .subscription-option.active .info-icon-small { background: rgba(255,255,255,0.4); }
+        .subscription-option:not(.active) .info-icon-small { background: #cbd5e1; color: #64748b; }
+        .info-icon-small:hover { transform: scale(1.15); }
+
+        .calculator-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 16px; padding: 16px; margin-bottom: 20px; display: none; }
+        .calculator-box.active { display: block; }
+        .calculator-title { font-size: 16px; font-weight: bold; color: #1e40af; margin-bottom: 16px; text-align: center; }
+        .calc-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+        .calc-row label { font-size: 14px; font-weight: 600; color: #1e3a8a; min-width: 80px; }
+        .calc-row select, .calc-row input { flex: 1; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 14px; background: white; color: #1e3a8a; }
+        .price-display { text-align: center; margin-top: 16px; padding: 12px; background: #eef2ff; border-radius: 12px; display: none; }
+        .price-display.show { display: block; }
+        .price-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+        .price-original { font-size: 16px; color: #94a3b8; text-decoration: line-through; }
+        .price-discount-badge { display: inline-block; background: #22c55e; color: white; font-size: 12px; font-weight: bold; padding: 2px 10px; border-radius: 20px; }
+        .price-final { font-size: 22px; font-weight: bold; color: #1e40af; }
+        .price-divider { border-top: 1px solid #cbd5e1; margin: 8px 0; }
+        .price-total-label { font-size: 14px; font-weight: 600; color: #1e3a8a; }
+
+        .subscription-dates-box { background: #dbeafe; border: 1px solid #1e40af; border-radius: 16px; padding: 16px; margin-bottom: 20px; display: none; }
+        .subscription-dates-box.active { display: block; }
+        .subscription-dates-box.highlight-error { border: 2px solid #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.2); }
+        .sub-dates-title { font-size: 15px; font-weight: bold; color: #1e3a8a; margin-bottom: 8px; }
+        .sub-date-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 10px; margin-bottom: 6px; }
+        .sub-date-item .date-label { font-size: 14px; color: #1e3a8a; font-weight: 500; }
+        .sub-date-item .date-value { font-size: 14px; color: #64748b; cursor: pointer; }
+        .sub-date-item .date-value.filled { color: #1e40af; font-weight: 600; }
+        .sub-date-progress { font-size: 13px; color: #64748b; text-align: center; margin-top: 8px; }
+
+        .subscription-pdf-box { display: none; margin-top: 16px; }
+        .subscription-pdf-box.active { display: block; }
+
+        .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 16px; padding: 12px 16px; margin-bottom: 20px; }
+        .pdf-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .pdf-icon { font-size: 24px; }
+        .pdf-name { font-size: 15px; font-weight: 600; color: #1e3a8a; word-break: break-word; }
+        .download-pdf-btn { background: #1e40af; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; margin-left: 12px; }
+        .confirm-label { font-size: 14px; font-weight: 600; color: #1e3a8a; margin-bottom: 6px; display: block; }
+        .terms-checkbox { display: flex; align-items: center; margin: 20px 0 24px; gap: 12px; }
+        .terms-checkbox input { width: 22px; height: 22px; cursor: pointer; accent-color: #1e40af; margin: 0; }
+        .terms-checkbox label { font-size: 14px; color: #1e3a8a; font-weight: 500; }
+        .terms-checkbox.highlight-error { border: 2px solid #dc2626; border-radius: 12px; padding: 10px; margin: 18px 0 22px; background-color: #fee2e2; }
+        .contact-header { font-size: 18px; font-weight: bold; color: #1e40af; margin: 20px 0 16px; }
+        .order-field { margin-bottom: 18px; }
+        .order-field label { display: block; font-size: 14px; font-weight: 600; color: #1e3a8a; margin-bottom: 6px; }
+
+        .date-picker-overlay { position: fixed; bottom: -100%; left: 0; width: 100%; height: 85%; background: white; border-radius: 30px 30px 0 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.2); z-index: 3900; transition: bottom 0.3s ease; display: flex; flex-direction: column; padding: 20px; }
+        .date-picker-overlay.open { bottom: 0; }
+        .date-picker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .date-picker-title { font-size: 20px; font-weight: bold; color: #1e40af; }
+        .close-date-picker { font-size: 28px; font-weight: bold; color: #1e40af; cursor: pointer; background: none; border: none; }
+        .date-picker-content { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+        .real-calendar { background: white; border-radius: 20px; border: 1px solid #cbd5e1; padding: 12px; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .calendar-month-year { font-size: 18px; font-weight: bold; color: #1e40af; }
+        .calendar-nav { background: #1e40af; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .calendar-nav.disabled { background: #cbd5e1; cursor: not-allowed; opacity: 0.4; color: #94a3b8; }
+        .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 12px; font-weight: bold; color: #1e3a8a; }
+        .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-day { text-align: center; padding: 10px 0; border-radius: 40px; cursor: pointer; transition: 0.1s; background: #f8fafc; color: #1e3a8a; }
+        .calendar-day.today { border: 2px solid #1e40af; background: white; font-weight: bold; }
+        .calendar-day.available { background: #dbeafe; cursor: pointer; color: #1e3a8a; }
+        .calendar-day.booked { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+        .calendar-day.selected { background: #1e40af; color: white; font-weight: bold; }
+        .calendar-day.sub-selected { background: #93c5fd; color: #1e3a8a; font-weight: bold; }
+        .calendar-day.other-month { color: #cbd5e1; background: #f1f5f9; cursor: default; }
+        .calendar-day.disabled { background: #f1f5f9; color: #cbd5e1; cursor: not-allowed; }
+        .hours-container { margin-top: 16px; border-top: 1px solid #cbd5e1; padding-top: 16px; }
+        .hours-title { font-size: 16px; font-weight: bold; color: #1e40af; margin-bottom: 12px; }
+        .hours-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .hour-btn { background: #dbeafe; border: none; padding: 10px; border-radius: 40px; font-size: 14px; font-weight: 600; color: #1e40af; cursor: pointer; text-align: center; }
+        .hour-btn.selected-hour { background: #1e40af; color: white; }
+        .select-date-btn { background: #1e40af; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+
+        .date-select-row { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+        .date-display { flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 16px; padding: 12px 14px; font-size: 15px; color: #1e3a8a; transition: border-color 0.2s, box-shadow 0.2s; }
+        .date-display.highlight-error { border-color: #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.2); background-color: #fee2e2; }
+        .pick-date-btn { background: #1e40af; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+
+        .order-buttons-row { display: flex; gap: 12px; margin: 30px 0 20px; }
+        .save-data-btn { flex: 1; background: #1e40af; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .submit-order-btn { flex: 1; background: #94a3b8; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: not-allowed; transition: background 0.2s, opacity 0.2s; opacity: 0.6; }
+        .submit-order-btn.active { background: #1e40af; cursor: pointer; opacity: 1; }
+
+        .confirmation-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 400px; background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); z-index: 4000; visibility: hidden; opacity: 0; transition: all 0.2s ease; pointer-events: none; padding: 24px 20px 20px; text-align: center; }
+        .confirmation-modal.active { visibility: visible; opacity: 1; pointer-events: auto; }
+        .confirmation-close { position: absolute; top: 12px; right: 16px; font-size: 24px; font-weight: bold; color: #1e40af; cursor: pointer; background: none; border: none; }
+        .confirmation-title { font-size: 22px; font-weight: bold; color: #1e40af; margin-bottom: 20px; }
+        .confirmation-widget-placeholder { background: #1e40af; border-radius: 16px; margin: 16px 0; padding: 30px; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+        .confirmation-widget-placeholder span { color: white; font-size: 48px; }
+        .confirmation-description { font-size: 14px; color: #1e3a8a; line-height: 1.5; margin-top: 12px; }
+
+        .hero-widget-placeholder { width: 100%; background: #1e40af; position: relative; overflow: hidden; min-height: 200px; display: flex; align-items: center; }
+        .hero-text-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 0 24px; pointer-events: none; text-align: left; display: flex; align-items: center; }
+        .hero-title-large { font-size: clamp(20px, 6vw, 36px); font-weight: 800; line-height: 1.2; }
+        .hero-widget1-title { font-size: clamp(20px, 6vw, 36px); font-weight: 800; line-height: 1.2; }
+        .hero-widget2-title { font-size: clamp(20px, 6vw, 36px); font-weight: 800; line-height: 1.2; }
+        .hero-text-overlay2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 0 24px; pointer-events: none; text-align: left; display: flex; align-items: center; }
+        .hero-text-overlay3 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 0 24px; pointer-events: none; display: flex; align-items: center; }
+
+        .widget-blue-light { color: #bfdbfe; }
+        .widget-blue-lighter { color: #93c5fd; }
+        .widget-white { color: #ffffff; }
+
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background-color: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 100; }
+        .left-group { display: flex; align-items: center; gap: 12px; }
+        .right-group { display: flex; align-items: center; gap: 10px; }
+        .logo img { max-height: 85px; width: auto; display: block; }
+        .login-container { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; position: relative; }
+        .login-icon img { max-height: 24px; width: auto; }
+        .login-text { font-size: 9px; color: #1e3a8a; font-weight: 700; }
+        .greeting-text { font-size: 11px; color: #1e40af; font-weight: 600; white-space: nowrap; }
+        .history-badge { position: absolute; top: -2px; right: -14px; width: 16px; height: 16px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; }
+        .history-badge.green { display: flex; background: #22c55e; }
+        .history-badge.red { display: flex; background: #dc2626; }
+        .history-badge.yellow { display: flex; background: #eab308; }
+        .burger-menu { cursor: pointer; display: flex; flex-direction: column; gap: 5px; padding: 8px; }
+        .burger-menu span { width: 28px; height: 3px; background-color: #1e40af; border-radius: 3px; }
+        .bottom-menu { position: fixed; bottom: -100%; left: 0; width: 100%; background-color: white; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.15); transition: bottom 0.3s ease; z-index: 1000; padding: 20px 0; }
+        .bottom-menu.open { bottom: 0; }
+        .bottom-menu-items { display: flex; flex-direction: column; gap: 8px; }
+        .bottom-menu-items a { display: block; padding: 14px 24px; text-decoration: none; color: #1e3a8a; font-weight: 600; font-size: 16px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+        .bottom-menu-items a.active { background-color: #eef2ff; border-left: 4px solid #1e40af; color: #1e40af; }
+        .bottom-menu-items .zamow-btn { background-color: #1e40af; color: white; border-radius: 8px; margin: 8px 16px; padding: 12px; border: none; }
+        .bottom-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; visibility: hidden; opacity: 0; transition: 0.2s; }
+        .bottom-menu-overlay.active { visibility: visible; opacity: 1; }
+
+        .hero-section { position: relative; width: 100%; }
+        .dynamic-content { background-color: white; padding: 0 12px; width: 100%; }
+
+        .custom-footer { background: #1e40af; margin: 20px 12px; padding: 20px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .footer-slogan { color: white; font-size: 18px; font-weight: bold; text-align: center; }
+        .footer-nip { color: rgba(255,255,255,0.8); font-size: 13px; }
+        .footer-order-btn { background: white; color: #1e40af; border: none; border-radius: 40px; padding: 12px 28px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+
+        .services-vertical { display: flex; flex-direction: column; gap: 16px; margin: 16px 0 24px; }
+        .service-card { background: white; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; padding: 18px; }
+        .service-card h4 { font-size: 18px; font-weight: 700; color: #1e3a8a; margin-bottom: 8px; }
+        .service-card p { font-size: 14px; color: #1e3a8a; line-height: 1.4; margin-bottom: 16px; }
+        .service-btn { background-color: #1e40af; color: white; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+        .section-with-lines { font-size: 22px; margin: 20px 0 12px; display: flex; align-items: center; gap: 10px; color: #1e40af; font-weight: bold; }
+        .section-with-lines::before, .section-with-lines::after { content: ""; flex: 1; height: 2px; background-color: #1e40af; }
+
+        .price-table-wrapper { width: 100%; overflow-x: auto; margin: 16px 0; }
+        .price-table { min-width: 800px; width: 100%; border-collapse: collapse; border: 2px solid #1e40af; font-size: 11px; }
+        .price-table th, .price-table td { border: 2px solid #1e40af; padding: 8px 6px; text-align: center; vertical-align: middle; }
+        .price-table th { background-color: #f1f5f9; font-size: 10px; font-weight: 700; color: #1e3a8a; }
+        .price-table td.first-col { background-color: #dbeafe; font-weight: bold; text-align: left; color: #1e3a8a; }
+        .price-table td.chem-price { color: #1e3a8a; font-weight: 700; }
+        .price-table td.biochem-price { color: #1e3a8a; font-weight: 700; }
+        .price-table td.general-chem-price { color: #1e3a8a; font-weight: 700; }
+        .price-table td.general-biochem-price { color: #1e3a8a; font-weight: 700; }
+        .price-table th.col-chem { background-color: #dbeafe; color: #1e3a8a; }
+        .price-table th.col-biochem { background-color: #cfebdd; color: #1e3a8a; }
+        .price-table th.col-general-chem { background-color: #bfdbfe; color: #1e3a8a; }
+        .price-table th.col-general-biochem { background-color: #a8d5ba; color: #1e3a8a; }
+
+        .biochemia-section, .cena-section { display: inline-flex; align-items: center; gap: 8px; background: #f0f4ff; border-radius: 30px; padding: 6px 14px; margin: 10px auto; font-size: 12px; cursor: pointer; color: #1e3a8a; }
+        .toggle-description { max-height: 0; overflow: hidden; transition: max-height 0.3s; background: #f9fafc; border-radius: 12px; margin: 8px 0; padding: 0 12px; color: #1e3a8a; }
+        .toggle-description.show { max-height: 300px; padding: 10px 12px; }
+        .info-icon { background: #1e40af; color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+        .more-info-btn { display: block; margin: 10px auto 20px auto; background: #1e40af; color: white; border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .more-info-btn:hover { background: #1e3a8a; }
+        .accordion-container { margin: 16px 0; }
+        .accordion-item { border: 1px solid #1e40af; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+        .accordion-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: white; cursor: pointer; }
+        .accordion-title { font-size: 16px; font-weight: 700; color: #1e40af; margin: 0; flex: 1; }
+        .accordion-toggle { width: 30px; height: 30px; background: #1e40af; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: #eef2ff; }
+        .accordion-content-inner { padding: 14px 16px; font-size: 13px; line-height: 1.5; color: #1e3a8a; }
+        .accordion-item.active .accordion-content { max-height: 600px; }
+        .about-widgets-container { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
+        .about-widget { background: #eef2ff; border-left: 6px solid #1e40af; border-radius: 12px; padding: 14px 16px; opacity: 0; transform: translateY(15px); animation: fadeInUp 0.4s ease forwards; }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        .widget-title { font-size: 18px; font-weight: 700; color: #1e3a8a; }
+        .widget-number { display: inline-block; background: #1e40af; color: white; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; margin-right: 10px; }
+        .widget-description { font-size: 13px; line-height: 1.4; margin-top: 8px; color: #1e3a8a; }
+        .faq-header-section { margin: 16px 0 8px; }
+        .faq-title-wrapper { display: flex; align-items: center; gap: 12px; }
+        .faq-title-wrapper .blue-line { flex: 1; height: 2px; background: #1e40af; }
+        .faq-title { font-size: 22px; font-weight: bold; color: #1e40af; white-space: nowrap; }
+        .white-frame-cards { display: flex; flex-direction: column; gap: 16px; margin: 16px 0 24px; }
+        .white-frame-card { background-color: white; border: 2px solid #1e40af; border-radius: 16px; padding: 18px; }
+        .white-frame-card h4 { font-size: 18px; font-weight: 700; color: #1e40af; margin-bottom: 8px; }
+        .white-frame-card p { font-size: 14px; color: #1e40af; line-height: 1.4; }
+
+        .notification-panel { position: fixed; top: 80px; right: 10px; width: 90%; max-width: 350px; background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 3800; padding: 16px; display: none; flex-direction: column; gap: 8px; }
+        .notification-panel.active { display: flex; }
+        .notification-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .notification-header span { font-weight: bold; color: #1e40af; font-size: 16px; }
+        .notification-close-all { font-size: 20px; font-weight: bold; color: #1e40af; cursor: pointer; background: none; border: none; }
+        .notification-item { padding: 10px 14px; border-radius: 12px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .notification-item.new { font-weight: bold; }
+        .notification-item.green { background: #dcfce7; color: #166534; }
+        .notification-item.red { background: #fee2e2; color: #991b1b; }
+        .notification-item.yellow { background: #fef3c7; color: #92400e; }
+        .notification-item .notif-close { font-size: 16px; font-weight: bold; cursor: pointer; background: none; border: none; flex-shrink: 0; }
+        .notification-item.green .notif-close { color: #166534; }
+        .notification-item.red .notif-close { color: #991b1b; }
+        .notification-item.yellow .notif-close { color: #92400e; }
+        .notification-count { background: #dc2626; color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 4px; }
+
+        .floating-message { position: fixed; bottom: 30px; left: 20px; right: 20px; text-align: center; padding: 12px; border-radius: 40px; font-size: 14px; font-weight: bold; z-index: 3200; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.2s ease; pointer-events: none; }
+        .floating-message.show { opacity: 1; }
+        .toast-error { background-color: #dc2626; color: white; }
+        .toast-warning { background-color: #eab308; color: #1e1a00; }
+        .toast-success { background-color: #22c55e; color: white; }
+        textarea { width: 100%; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 16px; font-size: 15px; outline: none; background: #f8fafc; font-family: inherit; resize: vertical; color: #1e3a8a; transition: border-color 0.2s, box-shadow 0.2s; }
+        textarea:focus { border-color: #1e40af; }
+        textarea.highlight-error { border-color: #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.2); background-color: #fee2e2; }
+        .price-description { font-size: 13px; text-align: center; margin-bottom: 8px; color: #1e40af; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+    <div class="navbar">
+        <div class="left-group">
+            <div class="logo"><img src="Logo.JPG" alt="Logo"></div>
+            <div class="login-container" id="loginTrigger">
+                <div class="login-icon"><img src="Account.JPG" alt="Konto"></div>
+                <div class="login-text" id="loginStatusText">Zaloguj się</div>
+                <div class="history-badge" id="historyBadge"></div>
+            </div>
+        </div>
+        <div class="right-group">
+            <span class="greeting-text" id="greetingText" style="display:none;"></span>
+            <div class="burger-menu" onclick="toggleBottomMenu()"><span></span><span></span><span></span></div>
+        </div>
+    </div>
+
+    <div id="notificationPanel" class="notification-panel">
+        <div class="notification-header">
+            <span>Powiadomienia <span id="notifCount" class="notification-count" style="display:none;">0</span></span>
+            <button class="notification-close-all" onclick="closeNotificationPanel()">&times;</button>
+        </div>
+        <div id="notificationList"></div>
+    </div>
+
+    <div class="bottom-menu-overlay" id="menuOverlay" onclick="toggleBottomMenu()"></div>
+    <div class="bottom-menu" id="bottomMenu">
+        <div class="bottom-menu-items">
+            <a href="#" data-tab="home" onclick="switchTabFromMenu('home')">Strona główna</a>
+            <a href="#" data-tab="services" onclick="switchTabFromMenu('services')">Usługi i ceny</a>
+            <a href="#" data-tab="about" onclick="switchTabFromMenu('about')">O nas</a>
+            <a href="#" data-tab="faq" onclick="switchTabFromMenu('faq')">FAQ</a>
+            <a href="#" class="zamow-btn" id="orderFromMenuBtn">Zamów sprzątanie</a>
+        </div>
+    </div>
+
+    <div id="heroContainer" class="hero-section"></div>
+    <div id="dynamicContent" class="dynamic-content"></div>
+
+    <div class="custom-footer">
+        <div class="footer-slogan">Elastyczność – nasza pasja</div>
+        <div class="footer-nip">NIP: 123-456-78-90 | REGON: 123456789</div>
+        <button class="footer-order-btn" id="footerOrderBtn">Zamów online</button>
+    </div>
+</div>
+
+<div id="loginModal" class="login-modal">
+    <button class="modal-close" id="closeModalBtn">&times;</button>
+    <div class="modal-tabs"><button class="tab-btn active" data-mode="login">Zaloguj się</button><button class="tab-btn" data-mode="register">Zarejestruj konto</button></div>
+    <div class="modal-body">
+        <div class="input-group" id="virtualNameGroup" style="display:none;">
+            <label>Wirtualne imię</label>
+            <input type="text" id="virtualNameInput" placeholder="Twoje wyświetlane imię" maxlength="12">
+        </div>
+        <div class="input-group"><label>Adres e-mail</label><input type="email" id="emailInput" placeholder="example@domena.pl"></div>
+        <div class="input-group"><label>Hasło</label><input type="password" id="passInput" placeholder="Wprowadź hasło"></div>
+        <button class="login-submit-btn" id="submitBtn">Zaloguj</button>
+        <div id="modalError" class="error-message-below"></div>
+    </div>
+</div>
+
+<div id="accountModal" class="account-modal">
+    <button class="modal-close" onclick="closeAccountModal()" style="position:absolute;top:12px;right:16px;">&times;</button>
+    <button class="account-modal-btn logout" onclick="logoutFromAccount()">Wyloguj się</button>
+    <button class="account-modal-btn" onclick="openHistoryFromAccount()">Historia zamówień</button>
+    <div class="account-limits" id="accountLimits">Anulowania w tym miesiącu: 0/3</div>
+</div>
+
+<div id="clientTypeOverlay" class="client-type-overlay">
+    <button class="client-type-close" id="closeClientTypeBtn">&times;</button>
+    <div class="client-type-question">Kim jesteś?</div>
+    <button class="client-type-big-btn" id="btnClientOsoba">Jestem osobą prywatną</button>
+    <button class="client-type-big-btn" id="btnClientFirma">Reprezentuję firmę</button>
+</div>
+
+<div id="historyOverlay" class="history-overlay">
+    <div class="history-header">
+        <span class="history-title" id="historyTitle">Historia zamówień</span>
+        <button class="history-close-btn" id="closeHistoryBtn">&times;</button>
+    </div>
+    <div id="historyContent"></div>
+</div>
+
+<div id="calendarViewModal" class="calendar-view-modal">
+    <div class="calendar-view-header">
+        <span class="history-title">Dostępność terminów</span>
+        <button class="calendar-view-close" id="closeCalendarViewBtn">&times;</button>
+    </div>
+    <div id="viewCalendarContainer" class="view-calendar-grid"></div>
+    <div class="availability-legend">
+        <div><span class="legend-circle blue"></span> Dni wolne (można rezerwować)</div>
+        <div><span class="legend-circle gray"></span> Dni zajęte</div>
+    </div>
+    <button class="btn-order-now" id="proceedToOrderBtn">Przystąp do zamówienia</button>
+</div>
+
+<div id="orderPage" class="order-page-overlay">
+    <div class="order-header">
+        <span class="order-title-left" id="orderTitle">Zamów sprzątanie</span>
+        <button class="close-order-btn" id="closeOrderBtn">&times;</button>
+    </div>
+    <div class="order-section">
+        <div class="pdf-row"><div class="pdf-left"><span class="pdf-icon">&#128196;</span><span class="pdf-name">Regulamin świadczenia usług</span></div><button class="download-pdf-btn" id="downloadPdfBtn">Pobierz</button></div>
+        <label class="confirm-label">Potwierdź zapoznanie się z dokumentem</label>
+        <input type="text" id="confirmTextInput" placeholder="Napisz: Potwierdzam" style="margin-bottom: 20px;">
+        <div class="terms-checkbox" id="termsCheckboxContainer"><input type="checkbox" id="acceptTermsCheckbox"><label for="acceptTermsCheckbox">Akceptuję warunki i regulamin opisane w niniejszym dokumencie</label></div>
+
+        <div class="subscription-toggle" id="subscriptionToggle">
+            <div class="subscription-option active" data-sub="single" id="subSingle">Jednorazowa usługa<span class="info-icon-small" onclick="event.stopPropagation();showSubscriptionInfo('single')">i</span></div>
+            <div class="subscription-option" data-sub="abonament" id="subAbonament">Abonament (6 usług)<span class="info-icon-small" onclick="event.stopPropagation();showSubscriptionInfo('abonament')">i</span></div>
+        </div>
+
+        <div class="calculator-box" id="calcOsoba">
+            <div class="calculator-title">Wybierz rodzaj sprzątania</div>
+            <div class="calc-row"><label>Liczba pokoi:</label><select id="roomsSelect"><option value="">-- wybierz --</option><option value="kawalerka">Kawalerka</option><option value="2pokoje">2 pokoje</option><option value="3pokoje">3 pokoje</option></select></div>
+            <div class="calc-row"><label>Typ sprzątania:</label><select id="osobaTypSprzatania"><option value="">-- wybierz --</option><option value="powierzchniowe">Powierzchniowe</option><option value="generalne">Generalne (głębokie)</option></select></div>
+            <div class="calc-row"><label>Rodzaj chemii:</label><select id="osobaChemia"><option value="">-- wybierz --</option><option value="chem">Profesjonalna chemia</option><option value="bio">Biochemia</option></select></div>
+            <div class="price-display" id="osobaPriceDisplay">
+                <div class="price-row"><span class="price-final">Cena za usługę: <span id="osobaPrice">0</span> zł</span></div>
+                <div id="osobaDiscountBlock" style="display:none;">
+                    <div class="price-row"><span class="price-original">Bez rabatu: <span id="osobaPriceOrig">0</span> zł</span><span class="price-discount-badge">-20%</span></div>
+                    <div class="price-divider"></div>
+                    <div class="price-row"><span class="price-total-label">Cena za 6 usług ze zniżką: <span style="color:#1e40af;font-weight:bold;" id="osobaTotalPrice">0</span> zł</span></div>
+                    <div class="price-row"><span class="price-original">Bez rabatu za 6 usług: <span id="osobaTotalOrig">0</span> zł</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="calculator-box" id="calcFirma">
+            <div class="calculator-title">Wybierz rodzaj sprzątania</div>
+            <div class="calc-row"><label>Rodzaj:</label><select id="firmaRodzaj"><option value="">-- wybierz --</option><option value="biura">Biura</option><option value="gastronomia">Gastronomia</option><option value="warsztaty">Warsztaty</option><option value="hotele">Hotele</option></select></div>
+            <div class="calc-row"><label>Metry (m&sup2;):</label><input type="number" id="firmaMetry" placeholder="np. 50" min="1"></div>
+            <div class="calc-row"><label>Typ sprzątania:</label><select id="firmaTypSprzatania"><option value="">-- wybierz --</option><option value="powierzchniowe">Powierzchniowe</option><option value="generalne">Generalne (głębokie)</option></select></div>
+            <div class="calc-row"><label>Rodzaj chemii:</label><select id="firmaChemia"><option value="">-- wybierz --</option><option value="chem">Profesjonalna chemia</option><option value="bio">Biochemia</option></select></div>
+            <div class="price-display" id="firmaPriceDisplay">
+                <div class="price-row"><span class="price-final">Cena za usługę: <span id="firmaPrice">0</span> zł</span></div>
+                <div id="firmaDiscountBlock" style="display:none;">
+                    <div class="price-row"><span class="price-original">Bez rabatu: <span id="firmaPriceOrig">0</span> zł</span><span class="price-discount-badge">-20%</span></div>
+                    <div class="price-divider"></div>
+                    <div class="price-row"><span class="price-total-label">Cena za 6 usług ze zniżką: <span style="color:#1e40af;font-weight:bold;" id="firmaTotalPrice">0</span> zł</span></div>
+                    <div class="price-row"><span class="price-original">Bez rabatu za 6 usług: <span id="firmaTotalOrig">0</span> zł</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="subscription-dates-box" id="subscriptionDatesBox">
+            <div class="sub-dates-title">Wybierz 6 terminów dla abonamentu:</div>
+            <div id="subDatesList"></div>
+            <div class="sub-date-progress" id="subDateProgress">Wybrano 0 z 6 terminów</div>
+        </div>
+
+        <div class="subscription-pdf-box" id="subscriptionPdfBox">
+            <div class="pdf-row"><div class="pdf-left"><span class="pdf-icon">&#128196;</span><span class="pdf-name">Regulamin abonamentu</span></div><button class="download-pdf-btn" id="downloadAbonamentPdfBtn">Pobierz</button></div>
+        </div>
+
+        <div class="contact-header">Dane kontaktowe</div>
+        <div class="order-field"><label>Imię</label><input type="text" id="firstName" placeholder="Wpisz swoje imię"></div>
+        <div class="order-field"><label>Nazwisko</label><input type="text" id="lastName" placeholder="Wpisz swoje nazwisko"></div>
+        <div class="order-field"><label>Adres e-mail</label><input type="email" id="email" placeholder="example@domena.pl"></div>
+        <div class="order-field"><label>Adres zamieszkania</label><input type="text" id="address" placeholder="Ulica, numer, kod pocztowy, miasto"></div>
+        <div class="order-field"><label>Życzenia <span style="font-weight:normal;font-size:12px;color:#64748b;">(opcjonalnie)</span></label><textarea id="orderNotes" rows="4" placeholder="Dodatkowe uwagi..."></textarea></div>
+
+        <div class="order-field" id="singleDateField">
+            <label>Wybierz datę sprzątania</label>
+            <div class="date-select-row"><div class="date-display" id="selectedDateDisplay">Nie wybrano daty</div><button class="pick-date-btn" id="openDatePickerBtn">Wybierz datę</button></div>
+        </div>
+
+        <div class="order-buttons-row">
+            <button class="save-data-btn" id="saveDataBtn">Zapamiętaj dane</button>
+            <button class="submit-order-btn" id="submitOrderBtn">Złóż zamówienie</button>
+        </div>
+    </div>
+</div>
+
+<div id="datePickerOverlay" class="date-picker-overlay">
+    <div class="date-picker-header"><span class="date-picker-title" id="datePickerTitle">Wybierz dzień sprzątania</span><button class="close-date-picker" id="closeDatePickerBtn">&times;</button></div>
+    <div class="date-picker-content" id="datePickerContent"></div>
+</div>
+
+<div id="confirmationModal" class="confirmation-modal">
+    <button class="confirmation-close" id="closeConfirmationBtn">&times;</button>
+    <div class="confirmation-title">Zamówienie złożone!</div>
+    <div class="confirmation-widget-placeholder"><span>&#10003;</span></div>
+    <div class="confirmation-description">Twoje zamówienie zostało sformułowane. Potwierdzimy je e-mailem.<br>W razie pytań – oddzwonimy.</div>
+</div>
+
+<div id="blurModal" class="blur-overlay"></div>
+<div id="floatingToast" class="floating-message"></div>
+<script>
+    if (typeof supabase === 'undefined' || !window.supabase) {
+        alert('Uwaga: strona działa tylko przez serwer HTTP (Live Server / XAMPP). Otwórz ją przez "http://localhost" a nie "file://"');
+    }
+    
+    const SUPABASE_URL = 'https://spdwkeqsscfdohnnkgtn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_8mOY4JJj3-wuu4K08cMFGQ_VN1ImI9d';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const ADMIN_EMAIL = 'andrelux777@gmail.com';
+
+    const cenyOsoba = {
+        kawalerka: { powierzchniowe: { chem: 199, bio: 239 }, generalne: { chem: 349, bio: 399 } },
+        '2pokoje': { powierzchniowe: { chem: 279, bio: 329 }, generalne: { chem: 479, bio: 549 } },
+        '3pokoje': { powierzchniowe: { chem: 359, bio: 419 }, generalne: { chem: 599, bio: 679 } }
+    };
+    const cenyFirma = {
+        biura: { powierzchniowe: { chem: 7, bio: 9 }, generalne: { chem: 13, bio: 16 } },
+        gastronomia: { powierzchniowe: { chem: 9, bio: 11 }, generalne: { chem: 16, bio: 19 } },
+        warsztaty: { powierzchniowe: { chem: 8, bio: 10 }, generalne: { chem: 14, bio: 17 } },
+        hotele: { powierzchniowe: { chem: 6, bio: 8 }, generalne: { chem: 11, bio: 14 } }
+    };
+
+    let clientType = null, subscriptionType = 'single', calculatedPrice = null;
+    let subDates = [null, null, null, null, null, null];
+    let currentSubDateIndex = null, subSelectedDate = null, subSelectedHour = null;
+    let currentVirtualName = '', currentUserEmail = '';
+    let isAdmin = false, isLoggedIn = false, currentMode = 'login';
+    let selectedDate = null, selectedHour = null, confirmationTimeout = null, toastTimeout = null;
+    let errorTimeout = null;
+    let saveButtonTimeout = null, anyFieldEdited = false;
+    let homeClientType = 'osoba';
+    let activeBlurTimeout = null, activePhotoId = null;
+    const bookedDates = new Set();
+    const bookedSlots = [];
+    let notifications = [];
+    let dismissedNotifications = new Set();
+    let cancelCounts = {};
+    let notificationFadeTimeouts = {};
+
+    let currentSlide = 0, autoSlideInterval = null, manualScrollTimeout = null;
+    const slides = [
+        '<div style="font-size:28px;font-weight:800;">Otrzymaj zniżkę</div><div style="font-size:48px;font-weight:900;margin-top:10px;">na abonament</div>',
+        '<div><div style="font-size:28px;font-weight:800;">Grafik sprzątania</div><div style="font-size:32px;font-weight:700;margin-top:10px;">na Twojej stronie</div><div style="font-size:18px;margin-top:8px;" class="light-text">Dopasujemy się do Ciebie</div></div>',
+        '<div><div style="font-size:32px;font-weight:900;">DAJEMY GWARANCJĘ</div><div style="font-size:24px;font-weight:700;margin-top:8px;">JAKOŚCI</div><div style="font-size:14px;margin-top:12px;" class="light-text">100% satysfakcji</div></div>'
+    ];
+
+    function startCarousel() { if (autoSlideInterval) clearInterval(autoSlideInterval); autoSlideInterval = setInterval(() => { currentSlide = (currentSlide + 1) % slides.length; updateCarousel(); }, 3000); }
+    function stopCarousel() { if (autoSlideInterval) clearInterval(autoSlideInterval); autoSlideInterval = null; }
+    function resetCarouselTimer() { if (manualScrollTimeout) clearTimeout(manualScrollTimeout); stopCarousel(); manualScrollTimeout = setTimeout(() => { startCarousel(); }, 5000); }
+    function updateCarousel() { const carousel = document.getElementById('heroCarousel'); if (carousel) carousel.style.transform = `translateX(-${currentSlide * 100}%)`; document.querySelectorAll('.carousel-dot').forEach((dot, idx) => { dot.classList.toggle('active', idx === currentSlide); }); }
+    function goToSlide(index) { currentSlide = index; updateCarousel(); resetCarouselTimer(); }
+    function nextSlide() { goToSlide((currentSlide + 1) % slides.length); }
+    function prevSlide() { goToSlide((currentSlide - 1 + slides.length) % slides.length); }
+
+    function formatDatePL(d) { return String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear(); }
+    function parseDatePL(s) { let parts = s.split('-'); return new Date(+parts[2], +parts[1]-1, +parts[0]); }
+    function getTodayInPoland() { let n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+    function getTomorrowInPoland() { let t = getTodayInPoland(); t.setDate(t.getDate()+1); return t; }
+    function isDateInPast(s) { return parseDatePL(s) < getTodayInPoland(); }
+    function getMaxDate() { let t = getTodayInPoland(); let limit = clientType === 'firma' ? 4 : 3; t.setMonth(t.getMonth() + limit); return t; }
+    function isDateOverLimit(s) { return parseDatePL(s) > getMaxDate(); }
+    function isDateAvailable(s) { return !isDateInPast(s) && !isDateOverLimit(s) && !bookedDates.has(s); }
+    function generateHours() { let h = []; for (let i = 8; i <= 18; i++) { h.push(String(i).padStart(2,'0')+':00'); if (i !== 18) h.push(String(i).padStart(2,'0')+':30'); } return h; }
+    function timeToMinutes(t) { let [h,m] = t.split(':').map(Number); return h*60+m; }
+    function minutesToTime(m) { let h = Math.floor(m/60), min = m%60; return String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'); }
+
+    function getCurrentMonthKey() { let d = new Date(); return d.getFullYear() + '-' + (d.getMonth()+1); }
+    function getCancelCount() { let key = getCurrentMonthKey(); return cancelCounts[key] || 0; }
+    function incrementCancelCount() { let key = getCurrentMonthKey(); cancelCounts[key] = (cancelCounts[key] || 0) + 1; localStorage.setItem('cancelCounts_' + currentUserEmail, JSON.stringify(cancelCounts)); }
+    function loadCancelCounts() { let saved = localStorage.getItem('cancelCounts_' + currentUserEmail); if (saved) { try { cancelCounts = JSON.parse(saved); } catch(e) { cancelCounts = {}; } } }
+
+    function isLessThan24Hours(dateStr, hourStr) {
+        if (!dateStr || !hourStr) return false;
+        let parts = dateStr.split('-');
+        let orderDate = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
+        let [h, m] = hourStr.split(':').map(Number);
+        orderDate.setHours(h, m, 0, 0);
+        let now = new Date();
+        let hoursLeft = (orderDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+        return hoursLeft < 24;
+    }
+
+    function isHourAvailableForDate(dateStr, hourStr, excludeOrderId = null) {
+        let startMin = timeToMinutes(hourStr), endMin = startMin + 240;
+        for (let slot of bookedSlots) {
+            if (slot.date === dateStr && slot.orderId !== excludeOrderId) {
+                let sMin = timeToMinutes(slot.start), eMin = timeToMinutes(slot.end);
+                if (!(endMin <= sMin || startMin >= eMin)) return false;
+            }
+        }
+        return true;
+    }
+
+    function getBookedSlotsForDate(dateStr) { return bookedSlots.filter(s => s.date === dateStr).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); }
+
+    function mergeBookedSlots(dateStr, excludeOrderId = null) {
+        let slots = getBookedSlotsForDate(dateStr).filter(s => s.orderId !== excludeOrderId);
+        if (slots.length === 0) return [];
+        let merged = [], current = {start: slots[0].start, end: slots[0].end};
+        for (let i = 1; i < slots.length; i++) {
+            let s = slots[i];
+            if (timeToMinutes(s.start) <= timeToMinutes(current.end)) { current.end = timeToMinutes(s.end) > timeToMinutes(current.end) ? s.end : current.end; }
+            else { merged.push(current); current = {start: s.start, end: s.end}; }
+        }
+        merged.push(current);
+        let finalMerged = [];
+        for (let slot of merged) {
+            let sMin = timeToMinutes(slot.start), eMin = timeToMinutes(slot.end);
+            if (eMin - sMin < 240) { eMin = sMin + 240; slot.end = minutesToTime(eMin); }
+            finalMerged.push(slot);
+        }
+        let i = 0;
+        while (i < finalMerged.length - 1) {
+            let curr = finalMerged[i], next = finalMerged[i+1];
+            let gap = timeToMinutes(next.start) - timeToMinutes(curr.end);
+            if (gap > 0 && gap < 240) { curr.end = minutesToTime(timeToMinutes(curr.end) + gap); finalMerged.splice(i+1, 1); }
+            else { i++; }
+        }
+        return finalMerged;
+    }
+
+    function isHourBlockedByMerged(dateStr, hourStr, excludeOrderId = null) {
+        let merged = mergeBookedSlots(dateStr, excludeOrderId);
+        let startMin = timeToMinutes(hourStr), endMin = startMin + 240;
+        for (let slot of merged) {
+            let sMin = timeToMinutes(slot.start), eMin = timeToMinutes(slot.end);
+            if (!(endMin <= sMin || startMin >= eMin)) return true;
+        }
+        return false;
+    }
+
+    function hasAnyAvailableHour(dateStr, excludeOrderId = null) {
+        let hours = generateHours();
+        for (let h of hours) { if (isDateAvailable(dateStr) && !isHourBlockedByMerged(dateStr, h, excludeOrderId) && isHourAvailableForDate(dateStr, h, excludeOrderId)) return true; }
+        return false;
+    }
+
+    async function loadBookedSlots() {
+        let { data, error } = await supabaseClient.from('orders').select('id, order_date, subscription_type, subscription_dates, status').in('status', ['pending', 'confirmed']);
+        if (error || !data) return;
+        bookedSlots.length = 0;
+        for (let order of data) {
+            if (order.subscription_type === 'abonament' && order.subscription_dates) {
+                let dates = [];
+                try { dates = JSON.parse(order.subscription_dates); } catch(e) { continue; }
+                for (let d of dates) {
+                    if (!d || !d.date || !d.hour) continue;
+                    let startMin = timeToMinutes(d.hour), endMin = startMin + 240;
+                    bookedSlots.push({ date: d.date, start: d.hour, end: minutesToTime(endMin), orderId: order.id });
+                }
+            } else if (order.order_date) {
+                let parts = order.order_date.split(' ');
+                if (parts.length < 2) continue;
+                let dateStr = parts[0], timeStr = parts[1];
+                let startMin = timeToMinutes(timeStr), endMin = startMin + 240;
+                bookedSlots.push({ date: dateStr, start: timeStr, end: minutesToTime(endMin), orderId: order.id });
+            }
+        }
+    }
+
+    function addNotification(msg, type, orderId = null) {
+        let key = msg + '_' + type + '_' + (orderId || '');
+        if (dismissedNotifications.has(key)) return;
+        let existing = notifications.find(n => n.msg === msg && n.type === type);
+        if (existing) return;
+        let notif = { msg, type, new: true, orderId, id: Date.now() };
+        notifications.unshift(notif);
+        updateNotificationUI();
+        if (notif.id in notificationFadeTimeouts) clearTimeout(notificationFadeTimeouts[notif.id]);
+        notificationFadeTimeouts[notif.id] = setTimeout(() => { notif.new = false; updateNotificationUI(); }, 3000);
+    }
+
+    function updateNotificationUI() {
+        let panel = document.getElementById('notificationPanel');
+        let list = document.getElementById('notificationList');
+        let countEl = document.getElementById('notifCount');
+        let activeNotifications = notifications.filter(n => !dismissedNotifications.has(n.msg + '_' + n.type + '_' + (n.orderId || '')));
+        let newCount = activeNotifications.filter(n => n.new).length;
+        if (newCount > 0) { countEl.style.display = 'inline'; countEl.innerText = newCount; }
+        else { countEl.style.display = 'none'; }
+        list.innerHTML = activeNotifications.map(n => {
+            let cls = `notification-item ${n.type} ${n.new ? 'new' : ''}`;
+            return `<div class="${cls}"><span>${n.msg}</span><button class="notif-close" onclick="removeNotification(${n.id})">&times;</button></div>`;
+        }).join('');
+        if (activeNotifications.length > 0) panel.classList.add('active');
+        else panel.classList.remove('active');
+        updateHistoryBadge();
+    }
+
+    function dismissAllNotifications() {
+        notifications.forEach(n => {
+            let key = n.msg + '_' + n.type + '_' + (n.orderId || '');
+            dismissedNotifications.add(key);
+        });
+        notifications = [];
+        updateNotificationUI();
+    }
+
+    function removeNotification(id) {
+        let n = notifications.find(x => x.id === id);
+        if (n) {
+            let key = n.msg + '_' + n.type + '_' + (n.orderId || '');
+            dismissedNotifications.add(key);
+        }
+        notifications = notifications.filter(x => x.id !== id);
+        updateNotificationUI();
+    }
+
+    function closeNotificationPanel() { dismissAllNotifications(); updateNotificationUI(); }
+
+    function updateHistoryBadge() {
+        let badge = document.getElementById('historyBadge');
+        let activeNotifications = notifications.filter(n => !dismissedNotifications.has(n.msg + '_' + n.type + '_' + (n.orderId || '')));
+        let newCount = activeNotifications.filter(n => n.new).length;
+        if (newCount > 0) {
+            let hasRed = activeNotifications.some(n => n.new && n.type === 'red');
+            let hasYellow = activeNotifications.some(n => n.new && n.type === 'yellow');
+            let hasGreen = activeNotifications.some(n => n.new && n.type === 'green');
+            if (hasRed) { badge.className = 'history-badge red'; badge.innerText = newCount; }
+            else if (hasYellow) { badge.className = 'history-badge yellow'; badge.innerText = newCount; }
+            else if (hasGreen) { badge.className = 'history-badge green'; badge.innerText = newCount; }
+        } else { badge.className = 'history-badge'; badge.innerText = ''; }
+    }
+
+    async function checkForNewOrders() {
+        if (!isAdmin || !currentUserEmail) return;
+        let { data, error } = await supabaseClient.from('orders').select('id, status, subscription_type, user_virtual_name, created_at').order('created_at', { ascending: false }).limit(20);
+        if (error || !data) return;
+        for (let order of data) {
+            let key = 'new_order_' + order.id;
+            if (!dismissedNotifications.has(key)) {
+                if (order.status === 'pending') { addNotification(`Nowe zamówienie od ${order.user_virtual_name} (${order.subscription_type === 'abonament' ? 'abonament' : 'jednorazowa'})`, 'yellow', order.id); }
+            }
+        }
+    }
+
+    async function checkForStatusUpdates() {
+        if (!isLoggedIn || isAdmin || !currentUserEmail) return;
+        let { data, error } = await supabaseClient.from('orders').select('*').eq('user_email', currentUserEmail).order('created_at', { ascending: false }).limit(10);
+        if (error || !data) return;
+        for (let order of data) {
+            let key = 'status_' + order.id + '_' + order.status + '_' + (order.subscription_step || 0);
+            if (!dismissedNotifications.has(key)) {
+                let typeLabel = order.subscription_type === 'abonament' ? 'Abonament' : 'Jednorazowa usługa';
+                if (order.status === 'confirmed') { addNotification(`${typeLabel} został potwierdzony. Sprawdź status w historii zamówień.`, 'green', order.id); }
+                else if (order.status === 'rejected') { addNotification(`${typeLabel} został odrzucony. Sprawdź status w historii zamówień.`, 'red', order.id); }
+                else if (order.status === 'cancelled') { addNotification(`${typeLabel} został anulowany. Sprawdź status w historii zamówień.`, 'red', order.id); }
+                if (order.subscription_type === 'abonament' && (order.subscription_step || 0) > 0) { addNotification(`Abonament zmienił status. Sprawdź szczegóły w historii.`, 'yellow', order.id); }
+            }
+        }
+    }
+
+    function renderViewCalendar() {
+        const today = getTodayInPoland();
+        let html = '<div class="real-calendar"><div class="calendar-header"><button class="calendar-nav" id="viewPrevMonth">&lt;</button><span class="calendar-month-year" id="viewMonthYear"></span><button class="calendar-nav" id="viewNextMonth">&gt;</button></div><div class="calendar-weekdays"><span>pon</span><span>wt</span><span>sr</span><span>czw</span><span>pt</span><span>sob</span><span>ndz</span></div><div class="calendar-days" id="viewDays"></div></div>';
+        document.getElementById('viewCalendarContainer').innerHTML = html;
+        let viewCurrentDate = new Date();
+        function updateNavButtons() {
+            let prevBtn = document.getElementById('viewPrevMonth'), nextBtn = document.getElementById('viewNextMonth');
+            let currentMonthStart = new Date(viewCurrentDate.getFullYear(), viewCurrentDate.getMonth(), 1);
+            let todayMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            let maxDate = getMaxDate();
+            let nextMonthStart = new Date(viewCurrentDate.getFullYear(), viewCurrentDate.getMonth() + 1, 1);
+            if (currentMonthStart <= todayMonthStart) { prevBtn.classList.add('disabled'); prevBtn.style.pointerEvents = 'none'; }
+            else { prevBtn.classList.remove('disabled'); prevBtn.style.pointerEvents = 'auto'; }
+            if (nextMonthStart > maxDate) { nextBtn.classList.add('disabled'); nextBtn.style.pointerEvents = 'none'; }
+            else { nextBtn.classList.remove('disabled'); nextBtn.style.pointerEvents = 'auto'; }
+        }
+        function refreshViewCalendar() {
+            const y = viewCurrentDate.getFullYear(), m = viewCurrentDate.getMonth();
+            const fd = new Date(y, m, 1), sw = fd.getDay(), dim = new Date(y, m+1, 0).getDate();
+            document.getElementById('viewMonthYear').innerText = fd.toLocaleString('pl-PL', {month: 'long', year: 'numeric'});
+            let daysHtml = '', off = sw === 0 ? 6 : sw - 1;
+            for (let i = 0; i < off; i++) daysHtml += '<div class="calendar-day other-month"></div>';
+            for (let d = 1; d <= dim; d++) {
+                const dobj = new Date(y, m, d), ds = formatDatePL(dobj);
+                const isPast = isDateInPast(ds), isOver = isDateOverLimit(ds);
+                let cls = 'calendar-day';
+                if (isPast || isOver) cls += ' disabled';
+                else if (hasAnyAvailableHour(ds)) cls += ' available';
+                else cls += ' booked';
+                if (dobj.toDateString() === today.toDateString()) cls += ' today';
+                daysHtml += `<div class="${cls}">${d}</div>`;
+            }
+            document.getElementById('viewDays').innerHTML = daysHtml;
+            updateNavButtons();
+        }
+        refreshViewCalendar();
+        document.getElementById('viewPrevMonth')?.addEventListener('click', () => { let newDate = new Date(viewCurrentDate); newDate.setMonth(newDate.getMonth() - 1); let todayMonthStart = new Date(today.getFullYear(), today.getMonth(), 1); if (newDate >= todayMonthStart) { viewCurrentDate = newDate; refreshViewCalendar(); } });
+        document.getElementById('viewNextMonth')?.addEventListener('click', () => { let newDate = new Date(viewCurrentDate); newDate.setMonth(newDate.getMonth() + 1); let maxDate = getMaxDate(); if (newDate <= maxDate) { viewCurrentDate = newDate; refreshViewCalendar(); } });
+    }
+
+    function openCalendarView() { renderViewCalendar(); document.getElementById('calendarViewModal').classList.add('active'); document.body.style.overflow = 'hidden'; }
+    function closeCalendarView() { document.getElementById('calendarViewModal').classList.remove('active'); document.body.style.overflow = ''; }
+
+    function buildSubDatesList() { const container = document.getElementById('subDatesList'); let html = ''; for (let i = 0; i < 6; i++) { html += `<div class="sub-date-item"><span class="date-label">Termin ${i+1}:</span><span class="date-value" data-index="${i}" onclick="openSubDatePicker(${i})">-- wybierz --</span></div>`; } container.innerHTML = html; }
+    buildSubDatesList();
+
+    function openClientTypeOverlay() { if (!isLoggedIn) { showToast('Najpierw musisz się zalogować.', 'warning'); showModal(); return; } document.getElementById('clientTypeOverlay').classList.add('active'); document.body.style.overflow = 'hidden'; }
+    function closeClientTypeOverlay() { document.getElementById('clientTypeOverlay').classList.remove('active'); document.body.style.overflow = ''; }
+
+    function selectClientType(type) {
+        clientType = type; closeClientTypeOverlay(); clearOrderFormData();
+        document.getElementById('orderTitle').innerText = type === 'osoba' ? 'Zamów sprzątanie - osoba prywatna' : 'Zamów sprzątanie - firma';
+        document.getElementById('calcOsoba').classList.toggle('active', type === 'osoba');
+        document.getElementById('calcFirma').classList.toggle('active', type === 'firma');
+        document.getElementById('orderPage').classList.add('active'); document.body.style.overflow = 'hidden';
+        updateSubscriptionUI(); updateSubmitButtonState();
+    }
+
+    function openAccountModal() {
+        if (!isLoggedIn) return;
+        document.getElementById('accountLimits').innerText = `Anulowania w tym miesiącu: ${getCancelCount()}/3`;
+        document.getElementById('accountModal').classList.add('active');
+        document.getElementById('blurModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAccountModal() {
+        document.getElementById('accountModal').classList.remove('active');
+        document.getElementById('blurModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function logoutFromAccount() { closeAccountModal(); logout(); }
+    function openHistoryFromAccount() { closeAccountModal(); openHistory(); }
+
+    async function changeOrderDate(orderId) {
+        if (!isLoggedIn) { showToast('Zaloguj się aby zmienić datę', 'warning'); return; }
+        let { data: order } = await supabaseClient.from('orders').select('*').eq('id', orderId).single();
+        if (!order) { showToast('Nie znaleziono zamówienia', 'error'); return; }
+        let dateStr = order.order_date ? order.order_date.split(' ')[0] : null;
+        let hourStr = order.order_date ? order.order_date.split(' ')[1] : null;
+        if (isLessThan24Hours(dateStr, hourStr)) {
+            showToast('Nie można zmienić daty, gdy do zamówienia pozostało mniej niż 24 godziny.', 'warning');
+            return;
+        }
+        if (order.subscription_type === 'abonament') { openSubDateChangeSelector(orderId, order); }
+        else { calendarMode = 'changeDate'; tempSelectedDate = null; tempSelectedHour = null; window.pendingOrderId = orderId; document.getElementById('datePickerTitle').innerText = 'Wybierz nową datę'; openDatePickerInternal(); }
+    }
+
+    function openSubDateChangeSelector(orderId, order) {
+        let dates = [];
+        try { dates = JSON.parse(order.subscription_dates || '[]'); } catch(e) { dates = []; }
+        if (dates.length !== 6) { let singleDate = order.order_date ? order.order_date.split(' ')[0] : null; let singleHour = order.order_date ? order.order_date.split(' ')[1] : null; dates = []; for (let i = 0; i < 6; i++) dates.push(singleDate && singleHour ? {date: singleDate, hour: singleHour} : null); }
+        let html = '<div style="padding:20px;"><h3 style="color:#1e40af;margin-bottom:16px;">Wybierz numer sprzątania do zmiany:</h3>';
+        for (let i = 0; i < 6; i++) { let label = dates[i] ? `${dates[i].date} ${dates[i].hour}` : '-- nie wybrano --'; html += `<button style="display:block;width:100%;padding:12px;margin-bottom:8px;background:#dbeafe;border:1px solid #1e40af;border-radius:12px;color:#1e3a8a;font-weight:bold;cursor:pointer;text-align:left;" onclick="selectSubDateToChange(${orderId}, ${i})">Sprzątanie ${i+1}: ${label}</button>`; }
+        html += '<button style="display:block;width:100%;padding:12px;background:#94a3b8;color:white;border:none;border-radius:12px;margin-top:12px;cursor:pointer;" onclick="closeSubDateSelector()">Anuluj</button></div>';
+        document.getElementById('datePickerContent').innerHTML = html;
+        document.getElementById('datePickerTitle').innerText = 'Zmień datę - abonament';
+        document.getElementById('datePickerOverlay').classList.add('open'); document.body.style.overflow = 'hidden';
+    }
+
+    function closeSubDateSelector() { document.getElementById('datePickerOverlay').classList.remove('open'); document.body.style.overflow = ''; }
+
+    window.selectSubDateToChange = function(orderId, index) {
+        window.pendingOrderId = orderId; window.pendingSubIndex = index;
+        calendarMode = 'changeSubDate'; tempSelectedDate = null; tempSelectedHour = null;
+        document.getElementById('datePickerTitle').innerText = `Wybierz nową datę dla sprzątania ${index+1}`;
+        closeSubDateSelector(); openDatePickerInternal();
+    };
+
+    window.confirmDateChange = async function() {
+        if (calendarMode === 'changeDate' && tempSelectedDate && tempSelectedHour && window.pendingOrderId) {
+            let newDateTime = tempSelectedDate + ' ' + tempSelectedHour;
+            let { error } = await supabaseClient.from('orders').update({ order_date: newDateTime }).eq('id', window.pendingOrderId).eq('user_email', currentUserEmail);
+            if (error) { showToast('Błąd zmiany daty: ' + error.message, 'error'); } else { showToast('Data zmieniona na ' + newDateTime, 'success'); await loadBookedSlots(); openHistory(); }
+            closeDatePicker(); calendarMode = 'single'; window.pendingOrderId = null;
+        } else if (calendarMode === 'changeSubDate' && tempSelectedDate && tempSelectedHour && window.pendingOrderId && window.pendingSubIndex !== undefined) {
+            let { data: order } = await supabaseClient.from('orders').select('subscription_dates').eq('id', window.pendingOrderId).single();
+            let dates = []; try { dates = JSON.parse(order.subscription_dates || '[]'); } catch(e) { dates = []; }
+            if (dates.length !== 6) { for (let i = 0; i < 6; i++) dates.push(null); }
+            dates[window.pendingSubIndex] = { date: tempSelectedDate, hour: tempSelectedHour };
+            let { error } = await supabaseClient.from('orders').update({ subscription_dates: JSON.stringify(dates) }).eq('id', window.pendingOrderId).eq('user_email', currentUserEmail);
+            if (error) { showToast('Błąd zmiany daty: ' + error.message, 'error'); } else { showToast(`Data sprzątania ${window.pendingSubIndex+1} zmieniona na ${tempSelectedDate} ${tempSelectedHour}`, 'success'); await loadBookedSlots(); openHistory(); }
+            closeDatePicker(); calendarMode = 'single'; window.pendingOrderId = null; window.pendingSubIndex = undefined;
+        } else if ((calendarMode === 'changeDate' || calendarMode === 'changeSubDate') && (!tempSelectedDate || !tempSelectedHour)) { showToast('Wybierz datę i godzinę', 'warning'); }
+    };
+
+    async function updateSubscriptionStep(orderId, step) {
+        if (!isAdmin) return;
+        let { error } = await supabaseClient.from('orders').update({ subscription_step: step }).eq('id', orderId);
+        if (error) { showToast('Błąd: ' + error.message, 'error'); } else {
+            showToast('Etap zaktualizowany', 'success');
+            let { data: order } = await supabaseClient.from('orders').select('user_email, subscription_type').eq('id', orderId).single();
+            if (order && order.user_email !== ADMIN_EMAIL) { addNotificationForUser(order.user_email, 'Abonament zmienił status. Sprawdź szczegóły w historii.', 'yellow'); }
+            openHistory();
+        }
+    }
+
+    function addNotificationForUser(email, msg, type) { if (email === currentUserEmail) addNotification(msg, type); }
+
+    async function openHistory() {
+        document.getElementById('historyOverlay').classList.add('active'); document.body.style.overflow = 'hidden';
+        notifications.forEach(n => { n.new = false; });
+        updateNotificationUI();
+        await loadBookedSlots();
+        if (!currentUserEmail) { document.getElementById('historyContent').innerHTML = '<p style="text-align:center;padding:20px;color:#1e3a8a;">Brak zamówień</p>'; return; }
+        if (isAdmin) {
+            document.getElementById('historyTitle').innerText = 'Panel administratora - wszystkie zamówienia';
+            const { data, error } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+            if (error || !data || data.length === 0) { document.getElementById('historyContent').innerHTML = '<p style="text-align:center;padding:20px;color:#1e3a8a;">Brak zamówień</p>'; return; }
+            let html = '';
+            data.forEach(order => {
+                let statusLabel = order.status === 'pending' ? 'Na rozpatrzeniu' : order.status === 'confirmed' ? 'Potwierdzono' : order.status === 'rejected' ? 'Odrzucono' : 'Anulowano';
+                let actionsHtml = '';
+                if (order.status === 'pending') { actionsHtml = `<div class="order-card-actions"><button class="admin-btn confirm" onclick="updateOrderStatus(${order.id}, 'confirmed')">Potwierdź</button><button class="admin-btn reject" onclick="updateOrderStatus(${order.id}, 'rejected')">Odrzuć</button></div>`; }
+                else if (order.status === 'confirmed') { actionsHtml = `<div class="order-card-actions"><button class="admin-btn reject" onclick="updateOrderStatus(${order.id}, 'rejected')">Odrzuć</button></div>`; }
+                let stepsHtml = '';
+                if (order.subscription_type === 'abonament') {
+                    const stepNames = ['Zlecenie przyjęte','Zlecenie potwierdzone','Otrzymano opłatę za abonament','Pierwsze sprzątanie','Drugie sprzątanie','Trzecie sprzątanie','Czwarte sprzątanie','Piąte sprzątanie','Szóste sprzątanie','Abonament zakończony'];
+                    const currentStep = order.subscription_step || 0;
+                    stepsHtml = '<div class="subscription-steps">' + stepNames.map((s, idx) => {
+                        let stepClass = '', displayText = s;
+                        if (idx < currentStep) { stepClass = 'done'; displayText = s + ' wykonane'; }
+                        else if (idx === currentStep) { stepClass = 'current'; displayText = (idx >= 3 && idx <= 8) ? 'Oczekujemy ' + s.toLowerCase() : s; }
+                        let stepClick = isAdmin ? ` onclick="updateSubscriptionStep(${order.id}, ${idx+1})" style="cursor:pointer;"` : '';
+                        return `<div class="sub-step ${stepClass}"${stepClick}>${displayText}</div>`;
+                    }).join('') + '</div>';
+                }
+                let datesHtml = '';
+                if (order.subscription_type === 'abonament' && order.subscription_dates) {
+                    let dates = []; try { dates = JSON.parse(order.subscription_dates); } catch(e) {}
+                    if (dates.length > 0) { datesHtml = '<div style="margin-top:8px;font-size:12px;color:#1e3a8a;">'; for (let i = 0; i < dates.length; i++) { if (dates[i]) datesHtml += `<div>• Sprzątanie ${i+1}: ${dates[i].date} ${dates[i].hour}</div>`; } datesHtml += '</div>'; }
+                }
+                html += `<div class="order-card"><div class="order-card-header"><span class="order-card-title">${order.service_details} (Klient: ${order.user_virtual_name})</span><span class="status-badge ${order.status}">${statusLabel}</span></div><div class="order-card-details"><span>Data:</span> ${order.order_date || '-'}<br><span>Adres:</span> ${order.address || '-'}<br><span>Cena:</span> ${order.price} zł</div>${datesHtml}${stepsHtml}${actionsHtml}</div>`;
+            });
+            document.getElementById('historyContent').innerHTML = html;
+        } else {
+            document.getElementById('historyTitle').innerText = 'Historia zamówień';
+            const { data, error } = await supabaseClient.from('orders').select('*').eq('user_email', currentUserEmail).order('created_at', { ascending: false });
+            if (error || !data || data.length === 0) { document.getElementById('historyContent').innerHTML = '<p style="text-align:center;padding:20px;color:#1e3a8a;">Brak zamówień</p>'; return; }
+            let html = '';
+            data.forEach(order => {
+                let statusLabel = order.status === 'pending' ? 'Na rozpatrzeniu' : order.status === 'confirmed' ? 'Potwierdzono' : order.status === 'rejected' ? 'Odrzucono' : 'Anulowano';
+                let dateStr = order.order_date ? order.order_date.split(' ')[0] : null;
+                let hourStr = order.order_date ? order.order_date.split(' ')[1] : null;
+                let less24 = isLessThan24Hours(dateStr, hourStr);
+                let canCancel = true;
+                let canChange = !less24;
+                let actionsHtml = '';
+                if (order.status === 'pending' || (order.subscription_type === 'abonament' && order.status === 'confirmed' && (order.subscription_step || 0) < 3)) {
+                    let cancelClick = canCancel ? `onclick="cancelOrder(${order.id})"` : `onclick="showToast('Nie można anulować po otrzymaniu opłaty za abonament', 'warning')"`;
+                    let changeClick = canChange ? `onclick="changeOrderDate(${order.id})"` : `onclick="showToast('Nie można zmienić daty, gdy do zamówienia pozostało mniej niż 24 godziny.', 'warning')"`;
+                    actionsHtml = `<div class="order-card-actions"><button class="cancel-btn" ${cancelClick}>Anuluj</button><button class="change-date-btn${canChange ? '' : ' disabled'}" ${changeClick}>Zmień datę</button></div>`;
+                } else if (order.status === 'pending') {
+                    let changeClick = canChange ? `onclick="changeOrderDate(${order.id})"` : `onclick="showToast('Nie można zmienić daty, gdy do zamówienia pozostało mniej niż 24 godziny.', 'warning')"`;
+                    actionsHtml = `<div class="order-card-actions"><button class="cancel-btn" onclick="cancelOrder(${order.id})">Anuluj</button><button class="change-date-btn${canChange ? '' : ' disabled'}" ${changeClick}>Zmień datę</button></div>`;
+                }
+                let stepsHtml = '';
+                if (order.subscription_type === 'abonament') {
+                    const stepNames = ['Zlecenie przyjęte','Zlecenie potwierdzone','Otrzymano opłatę za abonament','Pierwsze sprzątanie','Drugie sprzątanie','Trzecie sprzątanie','Czwarte sprzątanie','Piąte sprzątanie','Szóste sprzątanie','Abonament zakończony'];
+                    const currentStep = order.subscription_step || 0;
+                    stepsHtml = '<div class="subscription-steps">' + stepNames.map((s, idx) => {
+                        let stepClass = '', displayText = s;
+                        if (idx < currentStep) { stepClass = 'done'; displayText = s + ' wykonane'; }
+                        else if (idx === currentStep) { stepClass = 'current'; displayText = (idx >= 3 && idx <= 8) ? 'Oczekujemy ' + s.toLowerCase() : s; }
+                        return `<div class="sub-step ${stepClass}">${displayText}</div>`;
+                    }).join('') + '</div>';
+                }
+                let datesHtml = '';
+                if (order.subscription_type === 'abonament' && order.subscription_dates) {
+                    let dates = []; try { dates = JSON.parse(order.subscription_dates); } catch(e) {}
+                    if (dates.length > 0) { datesHtml = '<div style="margin-top:8px;font-size:12px;color:#1e3a8a;">'; for (let i = 0; i < dates.length; i++) { if (dates[i]) datesHtml += `<div>• Sprzątanie ${i+1}: ${dates[i].date} ${dates[i].hour}</div>`; } datesHtml += '</div>'; }
+                }
+                html += `<div class="order-card"><div class="order-card-header"><span class="order-card-title">${order.service_details}</span><span class="status-badge ${order.status}">${statusLabel}</span></div><div class="order-card-details"><span>Data:</span> ${order.order_date || '-'}<br><span>Adres:</span> ${order.address || '-'}<br><span>Cena:</span> ${order.price} zł</div>${datesHtml}${stepsHtml}${actionsHtml}</div>`;
+            });
+            document.getElementById('historyContent').innerHTML = html;
+        }
+    }
+
+    function closeHistory() { 
+        document.getElementById('historyOverlay').classList.remove('active'); 
+        document.body.style.overflow = ''; 
+        notifications.forEach(n => { n.new = false; });
+        updateNotificationUI();
+    }
+
+    async function updateOrderStatus(orderId, newStatus) {
+        if (!isAdmin) return;
+        let { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', orderId);
+        if (error) { showToast('Błąd aktualizacji: ' + error.message, 'error'); return; }
+        showToast('Status zaktualizowany!', 'success');
+        let { data: order } = await supabaseClient.from('orders').select('user_email, subscription_type').eq('id', orderId).single();
+        if (order) {
+            let typeLabel = order.subscription_type === 'abonament' ? 'Abonament' : 'Jednorazowa usługa';
+            let msg = newStatus === 'confirmed' ? `${typeLabel} został potwierdzony. Sprawdź status w historii zamówień.` : `${typeLabel} został odrzucony. Sprawdź status w historii zamówień.`;
+            let msgType = newStatus === 'confirmed' ? 'green' : 'red';
+            addNotificationForUser(order.user_email, msg, msgType);
+            if (order.user_email === currentUserEmail) addNotification(msg, msgType);
+        }
+        await loadBookedSlots(); openHistory();
+    }
+
+    async function cancelOrder(orderId) {
+        let { data: order } = await supabaseClient.from('orders').select('order_date').eq('id', orderId).single();
+        let dateStr = order?.order_date ? order.order_date.split(' ')[0] : null;
+        let hourStr = order?.order_date ? order.order_date.split(' ')[1] : null;
+        let less24 = isLessThan24Hours(dateStr, hourStr);
+        
+        if (less24) {
+            let count = getCancelCount();
+            if (count >= 3) {
+                showToast('Przekroczono limit 3 anulowań w tym miesiącu. Twoje konto zostało zablokowane.', 'error');
+                return;
+            }
+            incrementCancelCount();
+            count = getCancelCount();
+            showToast(`Wykorzystałeś ${count} z 3 prób anulowania w tym miesiącu. Jeśli przekroczysz limit, Twoje konto zostanie zablokowane.`, 'warning');
+        }
+        
+        let { error } = await supabaseClient.from('orders').update({ status: 'cancelled' }).eq('id', orderId).eq('user_email', currentUserEmail);
+        if (error) { showToast('Błąd anulowania: ' + error.message, 'error'); return; }
+        showToast('Zamówienie anulowane!', 'success');
+        addNotification('Zamówienie zostało anulowane. Sprawdź status w historii zamówień.', 'red');
+        await loadBookedSlots(); openHistory();
+    }
+
+    window.updateOrderStatus = updateOrderStatus;
+    window.cancelOrder = cancelOrder;
+    window.changeOrderDate = changeOrderDate;
+    window.updateSubscriptionStep = updateSubscriptionStep;
+    window.selectSubDateToChange = selectSubDateToChange;
+
+    function setSubscription(type) {
+        subscriptionType = type;
+        document.getElementById('subSingle').classList.toggle('active', type === 'single');
+        document.getElementById('subAbonament').classList.toggle('active', type === 'abonament');
+        document.getElementById('subscriptionToggle').classList.remove('highlight-error');
+        updateSubscriptionUI(); recalculatePrice(); updateSubmitButtonState();
+    }
+
+    function updateSubscriptionUI() {
+        let isAb = subscriptionType === 'abonament';
+        document.getElementById('subscriptionDatesBox').classList.toggle('active', isAb);
+        document.getElementById('subscriptionPdfBox').classList.toggle('active', isAb);
+        document.getElementById('singleDateField').style.display = isAb ? 'none' : 'block';
+        if (!isAb) { subDates = [null, null, null, null, null, null]; updateSubDatesList(); }
+    }
+
+    function updateSubDatesList() {
+        let filled = 0;
+        for (let i = 0; i < 6; i++) {
+            let el = document.querySelector(`.date-value[data-index="${i}"]`);
+            if (el) { if (subDates[i]) { el.innerText = subDates[i].date + ' ' + subDates[i].hour; el.classList.add('filled'); filled++; } else { el.innerText = '-- wybierz --'; el.classList.remove('filled'); } }
+        }
+        document.getElementById('subDateProgress').innerText = `Wybrano ${filled} z 6 terminów`;
+    }
+
+    function openSubDatePicker(index) { if (subscriptionType !== 'abonament') return; currentSubDateIndex = index; subSelectedDate = subDates[index] ? subDates[index].date : null; subSelectedHour = subDates[index] ? subDates[index].hour : null; calendarMode = 'subscription'; document.getElementById('datePickerTitle').innerText = `Wybierz termin ${index+1} z 6`; openDatePickerInternal(); }
+    function showSubscriptionInfo(type) { if (type === 'single') showToast('Jednorazowa usługa - pojedyncze sprzątanie w wybranym terminie.', 'success'); else showToast('Abonament - 6 usług ze zniżką 20%.', 'warning'); }
+
+    function recalculatePrice() { if (clientType === 'osoba') calculateOsobaPrice(); else if (clientType === 'firma') calculateFirmaPrice(); }
+    function getDiscount() { return subscriptionType === 'abonament' ? 0.8 : 1.0; }
+
+    function calculateOsobaPrice() {
+        let rooms = document.getElementById('roomsSelect').value, typ = document.getElementById('osobaTypSprzatania').value, chemia = document.getElementById('osobaChemia').value;
+        if (!rooms || !typ || !chemia) { document.getElementById('osobaPriceDisplay').classList.remove('show'); calculatedPrice = null; updateSubmitButtonState(); return; }
+        let base = cenyOsoba[rooms][typ][chemia], disc = getDiscount(), final = Math.round(base * disc);
+        calculatedPrice = final; let isDisc = subscriptionType === 'abonament';
+        document.getElementById('osobaPrice').innerText = final;
+        document.getElementById('osobaDiscountBlock').style.display = isDisc ? 'block' : 'none';
+        if (isDisc) { document.getElementById('osobaPriceOrig').innerText = base; document.getElementById('osobaTotalPrice').innerText = final * 6; document.getElementById('osobaTotalOrig').innerText = base * 6; }
+        document.getElementById('osobaPriceDisplay').classList.add('show');
+        anyFieldEdited = true; updateSaveButtonState(); updateSubmitButtonState();
+    }
+
+    function calculateFirmaPrice() {
+        let rodzaj = document.getElementById('firmaRodzaj').value, metry = parseInt(document.getElementById('firmaMetry').value);
+        let typ = document.getElementById('firmaTypSprzatania').value, chemia = document.getElementById('firmaChemia').value;
+        if (!rodzaj || !metry || metry < 1 || !typ || !chemia) { document.getElementById('firmaPriceDisplay').classList.remove('show'); calculatedPrice = null; updateSubmitButtonState(); return; }
+        let base = cenyFirma[rodzaj][typ][chemia] * metry, disc = getDiscount(), final = Math.round(base * disc);
+        calculatedPrice = final; let isDisc = subscriptionType === 'abonament';
+        document.getElementById('firmaPrice').innerText = final;
+        document.getElementById('firmaDiscountBlock').style.display = isDisc ? 'block' : 'none';
+        if (isDisc) { document.getElementById('firmaPriceOrig').innerText = base; document.getElementById('firmaTotalPrice').innerText = final * 6; document.getElementById('firmaTotalOrig').innerText = base * 6; }
+        document.getElementById('firmaPriceDisplay').classList.add('show');
+        anyFieldEdited = true; updateSaveButtonState(); updateSubmitButtonState();
+    }
+
+    function isCalculatorComplete() {
+        if (!clientType) return false;
+        if (clientType === 'osoba') return document.getElementById('roomsSelect').value && document.getElementById('osobaTypSprzatania').value && document.getElementById('osobaChemia').value && calculatedPrice !== null;
+        else { let m = parseInt(document.getElementById('firmaMetry').value); return document.getElementById('firmaRodzaj').value && !isNaN(m) && m >= 1 && document.getElementById('firmaTypSprzatania').value && document.getElementById('firmaChemia').value && calculatedPrice !== null; }
+    }
+
+    function removeAllHighlights() {
+        document.querySelectorAll('.highlight-error').forEach(e => e.classList.remove('highlight-error'));
+        if (document.getElementById('termsCheckboxContainer')) document.getElementById('termsCheckboxContainer').classList.remove('highlight-error');
+        if (document.getElementById('selectedDateDisplay')) document.getElementById('selectedDateDisplay').classList.remove('highlight-error');
+        if (document.getElementById('subscriptionToggle')) document.getElementById('subscriptionToggle').classList.remove('highlight-error');
+        if (document.getElementById('subscriptionDatesBox')) document.getElementById('subscriptionDatesBox').classList.remove('highlight-error');
+    }
+
+    function isFormComplete() {
+        let fn = document.getElementById('firstName').value.trim(), ln = document.getElementById('lastName').value.trim();
+        let em = document.getElementById('email').value.trim(), ad = document.getElementById('address').value.trim();
+        let ct = document.getElementById('confirmTextInput').value.trim(), tc = document.getElementById('acceptTermsCheckbox').checked;
+        let isAb = subscriptionType === 'abonament';
+        let hasDates = isAb ? subDates.every(d => d !== null) : (selectedDate !== null && selectedHour !== null);
+        return clientType !== null && isCalculatorComplete() && fn && ln && em && ad && ct === 'Potwierdzam' && tc && hasDates;
+    }
+
+    function updateSubmitButtonState() {
+        if (isFormComplete()) { document.getElementById('submitOrderBtn').classList.add('active'); document.getElementById('submitOrderBtn').style.cursor = 'pointer'; document.getElementById('submitOrderBtn').disabled = false; }
+        else { document.getElementById('submitOrderBtn').classList.remove('active'); document.getElementById('submitOrderBtn').style.cursor = 'not-allowed'; document.getElementById('submitOrderBtn').disabled = false; }
+    }
+
+    function getMissingFieldsList() {
+        let m = [];
+        if (!clientType) m.push('Wybór typu klienta');
+        if (!isCalculatorComplete()) m.push('Parametry sprzątania');
+        if (subscriptionType === 'abonament' && !subDates.every(d => d)) m.push('Wszystkie 6 terminów');
+        if (subscriptionType !== 'abonament' && (!selectedDate || !selectedHour)) m.push('Data i godzina');
+        if (!document.getElementById('firstName').value.trim()) m.push('Imię');
+        if (!document.getElementById('lastName').value.trim()) m.push('Nazwisko');
+        if (!document.getElementById('email').value.trim()) m.push('Adres e-mail');
+        if (!document.getElementById('address').value.trim()) m.push('Adres zamieszkania');
+        if (document.getElementById('confirmTextInput').value.trim() !== 'Potwierdzam') m.push('Potwierdzenie "Potwierdzam"');
+        if (!document.getElementById('acceptTermsCheckbox').checked) m.push('Akceptacja regulaminu');
+        return m;
+    }
+
+    function highlightMissingFields() {
+        removeAllHighlights();
+        if (!document.getElementById('firstName').value.trim()) document.getElementById('firstName').classList.add('highlight-error');
+        if (!document.getElementById('lastName').value.trim()) document.getElementById('lastName').classList.add('highlight-error');
+        if (!document.getElementById('email').value.trim()) document.getElementById('email').classList.add('highlight-error');
+        if (!document.getElementById('address').value.trim()) document.getElementById('address').classList.add('highlight-error');
+        if (document.getElementById('confirmTextInput').value.trim() !== 'Potwierdzam') document.getElementById('confirmTextInput').classList.add('highlight-error');
+        if (!document.getElementById('acceptTermsCheckbox').checked) document.getElementById('termsCheckboxContainer').classList.add('highlight-error');
+        if (subscriptionType !== 'abonament' && (!selectedDate || !selectedHour)) document.getElementById('selectedDateDisplay').classList.add('highlight-error');
+        if (subscriptionType === 'abonament' && !subDates.every(d => d)) document.getElementById('subscriptionDatesBox').classList.add('highlight-error');
+    }
+
+    function showMissingFieldsMessage() { let m = getMissingFieldsList(); if (m.length) showToast('Nie wypełniono: ' + m.join(', '), 'error'); }
+
+    let calendarCurrentDate = new Date(), calendarMode = 'single', tempSelectedDate = null, tempSelectedHour = null;
+
+    function renderCalendar() {
+        let y = calendarCurrentDate.getFullYear(), m = calendarCurrentDate.getMonth();
+        let fd = new Date(y, m, 1), sw = fd.getDay(), dim = new Date(y, m+1, 0).getDate();
+        let today = getTodayInPoland(); let currentMonthStart = new Date(y, m, 1); let todayMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        let isPastMonth = currentMonthStart <= todayMonthStart; let maxDate = getMaxDate(); let nextMonthStart = new Date(y, m + 1, 1); let isNextOverLimit = nextMonthStart > maxDate;
+        let excludeOrderId = (calendarMode === 'changeDate' || calendarMode === 'changeSubDate') ? window.pendingOrderId : null;
+
+        let h = `<div class="real-calendar"><div class="calendar-header"><button class="calendar-nav ${isPastMonth ? 'disabled' : ''}" id="prevMonthBtn" ${isPastMonth ? 'disabled' : ''}>&lt;</button><span class="calendar-month-year">${fd.toLocaleString('pl-PL', {month: 'long', year: 'numeric'})}</span><button class="calendar-nav ${isNextOverLimit ? 'disabled' : ''}" id="nextMonthBtn" ${isNextOverLimit ? 'disabled' : ''}>&gt;</button></div><div class="calendar-weekdays"><span>pon</span><span>wt</span><span>sr</span><span>czw</span><span>pt</span><span>sob</span><span>ndz</span></div><div class="calendar-days">`;
+        let off = sw === 0 ? 6 : sw - 1;
+        for (let i = 0; i < off; i++) h += '<div class="calendar-day other-month"></div>';
+        for (let d = 1; d <= dim; d++) {
+            let dobj = new Date(y, m, d), ds = formatDatePL(dobj), it = dobj.getTime() === today.getTime();
+            let av = isDateAvailable(ds), bk = !hasAnyAvailableHour(ds, excludeOrderId) && !isDateInPast(ds) && !isDateOverLimit(ds), ps = isDateInPast(ds), be = isDateOverLimit(ds);
+            let sel = (calendarMode === 'single' ? tempSelectedDate : (calendarMode === 'subscription' ? subSelectedDate : tempSelectedDate)) === ds;
+            let subSel = calendarMode === 'subscription' && subDates.some(sd => sd && sd.date === ds) && ds !== subSelectedDate;
+            let cl = '', clk = '';
+            if (ps || be) cl = 'disabled'; else if (bk) cl = 'booked'; else if (av) { cl = 'available'; clk = `onclick="window.selectCalendarDay('${ds}')"`; }
+            if (it) cl += ' today'; if (sel) cl += ' selected'; if (subSel) cl += ' sub-selected';
+            h += `<div class="calendar-day ${cl}" ${clk}>${d}</div>`;
+        }
+        h += '</div>';
+        let csd = (calendarMode === 'single' || calendarMode === 'changeDate' || calendarMode === 'changeSubDate') ? tempSelectedDate : subSelectedDate;
+        if (csd && isDateAvailable(csd)) {
+            let csh = (calendarMode === 'single' || calendarMode === 'changeDate' || calendarMode === 'changeSubDate') ? tempSelectedHour : subSelectedHour;
+            h += `<div class="hours-container"><div class="hours-title">Dostępne godziny</div><div class="hours-grid">`;
+            generateHours().forEach(hr => {
+                let avail = isHourAvailableForDate(csd, hr, excludeOrderId) && !isHourBlockedByMerged(csd, hr, excludeOrderId);
+                let cls = `hour-btn ${csh === hr ? 'selected-hour' : ''}`; let click = avail ? `onclick="window.selectHour('${hr}')"` : '';
+                h += `<button class="${cls}" ${click}>${hr}</button>`;
+            });
+            h += `</div></div>`;
+        }
+        let buttonText = 'Potwierdź datę i godzinę'; if (calendarMode === 'changeDate') buttonText = 'Zmień datę zamówienia'; if (calendarMode === 'changeSubDate') buttonText = 'Zmień datę sprzątania';
+        h += `<button class="select-date-btn" id="confirmRealDateBtn">${buttonText}</button>`;
+        document.getElementById('datePickerContent').innerHTML = h;
+        let pb = document.getElementById('prevMonthBtn'); if (pb && !isPastMonth) { pb.addEventListener('click', () => { calendarCurrentDate.setMonth(calendarCurrentDate.getMonth()-1); renderCalendar(); }); }
+        let nb = document.getElementById('nextMonthBtn'); if (nb && !isNextOverLimit) { nb.addEventListener('click', () => { calendarCurrentDate.setMonth(calendarCurrentDate.getMonth()+1); renderCalendar(); }); }
+        let cb = document.getElementById('confirmRealDateBtn'); if (cb) cb.addEventListener('click', () => {
+            let sd = (calendarMode === 'single' || calendarMode === 'changeDate' || calendarMode === 'changeSubDate') ? tempSelectedDate : subSelectedDate;
+            let sh = (calendarMode === 'single' || calendarMode === 'changeDate' || calendarMode === 'changeSubDate') ? tempSelectedHour : subSelectedHour;
+            if (sd && sh) {
+                if (calendarMode === 'single') { selectedDate = sd; selectedHour = sh; document.getElementById('selectedDateDisplay').innerText = sd + ' ' + sh; document.getElementById('selectedDateDisplay').classList.remove('highlight-error'); closeDatePicker(); showToast('Wybrano: ' + sd + ' o ' + sh, 'success'); anyFieldEdited = true; updateSaveButtonState(); updateSubmitButtonState(); }
+                else if (calendarMode === 'subscription') { subDates[currentSubDateIndex] = {date: sd, hour: sh}; updateSubDatesList(); document.getElementById('subscriptionDatesBox').classList.remove('highlight-error'); closeDatePicker(); showToast('Wybrano: ' + sd + ' o ' + sh, 'success'); anyFieldEdited = true; updateSaveButtonState(); updateSubmitButtonState(); }
+                else if (calendarMode === 'changeDate' || calendarMode === 'changeSubDate') { window.confirmDateChange(); }
+            } else if (sd && !sh) showToast('Wybierz godzinę', 'warning');
+            else showToast('Wybierz dzień w kalendarzu', 'warning');
+        });
+    }
+
+    window.selectCalendarDay = function(ds) { if (calendarMode === 'single' || calendarMode === 'changeDate' || calendarMode === 'changeSubDate') { tempSelectedDate = ds; tempSelectedHour = null; } else { subSelectedDate = ds; subSelectedHour = null; } renderCalendar(); };
+    window.selectHour = function(h) { if (calendarMode === 'single' || calendarMode === 'changeDate' || calendarMode === 'changeSubDate') { tempSelectedHour = h; } else { subSelectedHour = h; } renderCalendar(); };
+
+    function openDatePickerInternal() {
+        let defaultDate;
+        if (calendarMode === 'single') defaultDate = selectedDate || formatDatePL(getTomorrowInPoland());
+        else if (calendarMode === 'subscription') defaultDate = subSelectedDate || formatDatePL(getTomorrowInPoland());
+        else defaultDate = formatDatePL(getTomorrowInPoland());
+        let p = defaultDate.split('-'); calendarCurrentDate = new Date(+p[2], +p[1]-1, +p[0]);
+        renderCalendar(); document.getElementById('datePickerOverlay').classList.add('open'); document.body.style.overflow = 'hidden';
+    }
+
+    function openDatePicker() { calendarMode = 'single'; tempSelectedDate = selectedDate; tempSelectedHour = selectedHour; document.getElementById('datePickerTitle').innerText = 'Wybierz dzień sprzątania'; openDatePickerInternal(); }
+    function closeDatePicker() { document.getElementById('datePickerOverlay').classList.remove('open'); document.body.style.overflow = ''; calendarMode = 'single'; }
+
+    function isAnyFormFieldFilled() { return document.getElementById('firstName').value.trim() || document.getElementById('lastName').value.trim() || document.getElementById('email').value.trim() || document.getElementById('address').value.trim() || document.getElementById('confirmTextInput').value.trim() || document.getElementById('orderNotes').value.trim() || selectedDate || clientType || subDates.some(d => d); }
+
+    function updateSaveButtonState() { let hd = isAnyFormFieldFilled(), hs = localStorage.getItem('savedOrderForm'); if (anyFieldEdited || hd) document.getElementById('saveDataBtn').innerHTML = 'Zapamiętaj dane'; else if (hs) document.getElementById('saveDataBtn').innerHTML = 'Wstaw zapisane dane'; else document.getElementById('saveDataBtn').innerHTML = 'Zapamiętaj dane'; }
+
+    function clearOrderFormData() {
+        document.getElementById('firstName').value = ''; document.getElementById('lastName').value = ''; document.getElementById('email').value = ''; document.getElementById('address').value = '';
+        document.getElementById('confirmTextInput').value = ''; document.getElementById('acceptTermsCheckbox').checked = false; document.getElementById('orderNotes').value = '';
+        selectedDate = null; selectedHour = null; document.getElementById('selectedDateDisplay').innerText = 'Nie wybrano daty'; tempSelectedDate = null; tempSelectedHour = null;
+        subSelectedDate = null; subSelectedHour = null; subDates = [null, null, null, null, null, null]; calculatedPrice = null; anyFieldEdited = false;
+        subscriptionType = 'single'; document.getElementById('subSingle').classList.add('active'); document.getElementById('subAbonament').classList.remove('active');
+        document.getElementById('calcOsoba').classList.remove('active'); document.getElementById('calcFirma').classList.remove('active');
+        document.getElementById('osobaPriceDisplay').classList.remove('show'); document.getElementById('firmaPriceDisplay').classList.remove('show');
+        document.getElementById('osobaDiscountBlock').style.display = 'none'; document.getElementById('firmaDiscountBlock').style.display = 'none';
+        updateSubscriptionUI(); updateSubDatesList(); updateSaveButtonState(); updateSubmitButtonState(); removeAllHighlights();
+    }
+
+    function saveFormData() {
+        if (!isAnyFormFieldFilled() && !selectedDate) { showToast('Brak danych do zapisu', 'warning'); return; }
+        localStorage.setItem('savedOrderForm', JSON.stringify({ clientType, subscriptionType, calculatedPrice, subDates, firstName: document.getElementById('firstName').value, lastName: document.getElementById('lastName').value, email: document.getElementById('email').value, address: document.getElementById('address').value, confirmText: document.getElementById('confirmTextInput').value, termsChecked: document.getElementById('acceptTermsCheckbox').checked, orderNotes: document.getElementById('orderNotes').value, selectedDate, selectedHour }));
+        document.getElementById('saveDataBtn').innerHTML = 'Zapamiętano';
+        if (saveButtonTimeout) clearTimeout(saveButtonTimeout);
+        saveButtonTimeout = setTimeout(() => { anyFieldEdited = false; updateSaveButtonState(); }, 2000);
+        showToast('Dane zostały zapamiętane!', 'success');
+    }
+
+    function loadSavedData() {
+        let s = localStorage.getItem('savedOrderForm'); if (!s) { showToast('Brak zapisanych danych', 'warning'); return; }
+        try {
+            let d = JSON.parse(s);
+            document.getElementById('firstName').value = d.firstName || ''; document.getElementById('lastName').value = d.lastName || '';
+            document.getElementById('email').value = d.email || ''; document.getElementById('address').value = d.address || '';
+            document.getElementById('confirmTextInput').value = d.confirmText || ''; document.getElementById('acceptTermsCheckbox').checked = d.termsChecked || false;
+            document.getElementById('orderNotes').value = d.orderNotes || '';
+            if (d.selectedDate && d.selectedHour) { selectedDate = d.selectedDate; selectedHour = d.selectedHour; document.getElementById('selectedDateDisplay').innerText = selectedDate + ' ' + selectedHour; }
+            anyFieldEdited = false; updateSaveButtonState(); updateSubmitButtonState(); removeAllHighlights();
+            showToast('Wczytano zapisane dane', 'success');
+        } catch(e) {}
+    }
+
+    function handleSaveOrLoad() { if (anyFieldEdited || isAnyFormFieldFilled()) saveFormData(); else if (localStorage.getItem('savedOrderForm')) loadSavedData(); else saveFormData(); }
+
+    async function submitOrder() {
+        removeAllHighlights();
+        if (!isFormComplete() || !currentUserEmail) { highlightMissingFields(); showMissingFieldsMessage(); return; }
+        var orderData = {
+            user_email: currentUserEmail,
+            user_virtual_name: currentVirtualName,
+            client_type: clientType,
+            subscription_type: subscriptionType,
+            service_details: clientType === 'osoba' ? (document.getElementById('roomsSelect').value + ' - ' + document.getElementById('osobaTypSprzatania').value + ' - ' + document.getElementById('osobaChemia').value) : (document.getElementById('firmaRodzaj').value + ' - ' + document.getElementById('firmaMetry').value + 'm²'),
+            price: calculatedPrice,
+            status: 'pending',
+            address: document.getElementById('address').value,
+            order_date: selectedDate ? (selectedDate + ' ' + selectedHour) : null
+        };
+        var { error } = await supabaseClient.from('orders').insert(orderData);
+        if (error) { showToast('Błąd zapisu zamówienia: ' + error.message, 'error'); return; }
+        document.getElementById('confirmationModal').classList.add('active'); 
+        document.getElementById('blurModal').classList.add('active'); 
+        document.body.style.overflow = 'hidden';
+        document.getElementById('orderPage').classList.remove('active'); 
+        switchTab('home');
+        await loadBookedSlots();
+        if (confirmationTimeout) clearTimeout(confirmationTimeout);
+        confirmationTimeout = setTimeout(closeConfirmationModal, 8000);
+    }
+
+    function closeConfirmationModal() { document.getElementById('confirmationModal').classList.remove('active'); document.getElementById('blurModal').classList.remove('active'); document.body.style.overflow = ''; if (confirmationTimeout) { clearTimeout(confirmationTimeout); confirmationTimeout = null; } }
+
+    function showToast(msg, type) {
+        type = type || 'error'; if (toastTimeout) clearTimeout(toastTimeout);
+        let toast = document.getElementById('floatingToast'); toast.innerText = msg; toast.className = 'floating-message show toast-' + type;
+        toastTimeout = setTimeout(() => { toast.classList.remove('show', 'toast-error', 'toast-warning', 'toast-success'); }, 4000);
+    }
+
+    function showModal() { if (isLoggedIn) return; document.getElementById('loginModal').classList.add('active'); document.getElementById('blurModal').classList.add('active'); document.body.style.overflow = 'hidden'; document.getElementById('modalError').innerText = ''; }
+    function hideModal() { document.getElementById('loginModal').classList.remove('active'); document.getElementById('blurModal').classList.remove('active'); document.body.style.overflow = ''; }
+    function setErrorMsg(msg) { let err = document.getElementById('modalError'); err.innerText = msg; err.classList.add('show'); if (errorTimeout) clearTimeout(errorTimeout); errorTimeout = setTimeout(() => { err.classList.remove('show'); }, 2000); }
+    function setModalMode(mode) { currentMode = mode; document.getElementById('virtualNameGroup').style.display = (mode === 'register') ? 'block' : 'none'; document.getElementById('modalError').innerText = ''; document.getElementById('modalError').classList.remove('show'); }
+
+    async function handleAuth() {
+        let email = document.getElementById('emailInput').value.trim(), password = document.getElementById('passInput').value;
+        if (!email && !password) { setErrorMsg('Wprowadź adres e-mail i hasło'); return; }
+        if (!email) { setErrorMsg('Wprowadź adres e-mail'); return; }
+        if (!password) { setErrorMsg('Wprowadź hasło'); return; }
+        if (currentMode === 'register') {
+            let virtualName = document.getElementById('virtualNameInput').value.trim();
+            if (!virtualName) { setErrorMsg('Wprowadź wirtualne imię'); return; }
+            if (virtualName.length > 12) { setErrorMsg('Imię nie może przekraczać 12 znaków'); return; }
+            let { data: existing } = await supabaseClient.from('profiles').select('email').eq('email', email).maybeSingle();
+            if (existing) { setErrorMsg('Ten adres e-mail jest już zarejestrowany'); return; }
+            let { error } = await supabaseClient.from('profiles').insert({ email: email, password: password, virtual_name: virtualName });
+            if (error) { setErrorMsg('Błąd rejestracji: ' + error.message); return; }
+            currentUserEmail = email; currentVirtualName = virtualName; isLoggedIn = true;
+        } else {
+            let { data: profile, error } = await supabaseClient.from('profiles').select('*').eq('email', email).eq('password', password).maybeSingle();
+            if (error || !profile) { setErrorMsg('Nieprawidłowy e-mail lub hasło'); return; }
+            currentUserEmail = profile.email; currentVirtualName = profile.virtual_name; isLoggedIn = true;
+        }
+        isAdmin = (currentUserEmail === ADMIN_EMAIL);
+        loadCancelCounts();
+        updateUIAfterLogin();
+    }
+
+    function updateUIAfterLogin() {
+        document.getElementById('loginStatusText').innerText = 'Moje konto';
+        document.getElementById('greetingText').innerText = 'Cześć, ' + currentVirtualName + '!';
+        document.getElementById('greetingText').style.display = 'block'; 
+        hideModal();
+        document.getElementById('emailInput').value = ''; document.getElementById('passInput').value = ''; document.getElementById('virtualNameInput').value = '';
+        document.getElementById('modalError').innerText = ''; document.getElementById('modalError').classList.remove('show');
+        showToast('Zalogowano pomyślnie!', 'success');
+        loadBookedSlots().then(() => { if (isAdmin) checkForNewOrders(); else checkForStatusUpdates(); });
+    }
+
+    function logout() {
+        isLoggedIn = false; isAdmin = false; currentUserEmail = ''; currentVirtualName = '';
+        document.getElementById('loginStatusText').innerText = 'Zaloguj się';
+        document.getElementById('greetingText').style.display = 'none'; 
+        document.getElementById('historyBadge').classList.remove('green', 'red', 'yellow');
+        showToast('Wylogowano pomyślnie.', 'error'); 
+        dismissedNotifications.clear();
+        notifications = []; 
+        cancelCounts = {};
+        updateNotificationUI();
+    }
+
+    function downloadRegulamin() { var b = new Blob(['REGULAMIN ŚWIADCZENIA USŁUG SPRZĄTANIA\n\n1. Postanowienia ogólne.\n2. Zakres usług.\n3. Rezerwacja i odwołanie.\n4. Płatności.\n5. Odpowiedzialność.\n6. Reklamacje.\n7. Postanowienia końcowe.'], {type: 'application/pdf'}); var u = URL.createObjectURL(b); var a = document.createElement('a'); a.href = u; a.download = 'regulamin_uslug.pdf'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); showToast('Pobieranie regulaminu...', 'success'); }
+    function downloadAbonamentRegulamin() { var b = new Blob(['REGULAMIN ABONAMENTU\n\nSzczegóły dotyczące abonamentu, warunki przerwania, opłatę.'], {type: 'application/pdf'}); var u = URL.createObjectURL(b); var a = document.createElement('a'); a.href = u; a.download = 'regulamin_abonamentu.pdf'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); showToast('Pobieranie regulaminu abonamentu...', 'success'); }
+
+    function closeOrderPage() { document.getElementById('orderPage').classList.remove('active'); document.body.style.overflow = ''; if (isAnyFormFieldFilled()) showToast('Rezerwacja została przerwana.', 'error'); }
+
+    let homeCalendarDate = new Date(); let homeSelectedDate = null; let homeSelectedHour = null;
+
+    function renderHomeCalendar() {
+        let y = homeCalendarDate.getFullYear(), m = homeCalendarDate.getMonth();
+        let fd = new Date(y, m, 1), sw = fd.getDay(), dim = new Date(y, m+1, 0).getDate();
+        let today = getTodayInPoland(); let maxDate = getMaxDate();
+        let isPastMonth = new Date(y, m, 1) <= new Date(today.getFullYear(), today.getMonth(), 1);
+        let isNextOverLimit = new Date(y, m+1, 1) > maxDate;
+        let html = `<div class="home-calendar-container"><div class="home-calendar-header"><button class="home-calendar-nav ${isPastMonth ? 'disabled' : ''}" id="homePrevMonth" ${isPastMonth ? 'disabled' : ''}>&lt;</button><span>${fd.toLocaleString('pl-PL', {month: 'long', year: 'numeric'})}</span><button class="home-calendar-nav ${isNextOverLimit ? 'disabled' : ''}" id="homeNextMonth" ${isNextOverLimit ? 'disabled' : ''}>&gt;</button></div><div class="home-calendar-weekdays"><span>pon</span><span>wt</span><span>sr</span><span>czw</span><span>pt</span><span>sob</span><span>ndz</span></div><div class="home-calendar-days">`;
+        let off = sw === 0 ? 6 : sw - 1;
+        for (let i = 0; i < off; i++) html += '<div class="home-calendar-day other-month"></div>';
+        for (let d = 1; d <= dim; d++) {
+            let dobj = new Date(y, m, d), ds = formatDatePL(dobj);
+            let available = hasAnyAvailableHour(ds); let isPast = isDateInPast(ds); let isOver = isDateOverLimit(ds);
+            let selected = homeSelectedDate === ds; let cls = 'home-calendar-day';
+            if (isPast || isOver) cls += ' disabled'; else if (available) cls += ' available'; else cls += ' disabled';
+            if (selected) cls += ' selected';
+            html += `<div class="${cls}" onclick="selectHomeDay('${ds}')">${d}</div>`;
+        }
+        html += `</div>`;
+        if (homeSelectedDate && hasAnyAvailableHour(homeSelectedDate) && !isDateInPast(homeSelectedDate) && !isDateOverLimit(homeSelectedDate)) {
+            html += `<div class="home-hours-grid">`;
+            generateHours().forEach(hr => {
+                let avail = isHourAvailableForDate(homeSelectedDate, hr) && !isHourBlockedByMerged(homeSelectedDate, hr);
+                html += `<button class="home-hour-btn ${homeSelectedHour === hr ? 'selected' : ''} ${!avail ? 'busy' : ''}" onclick="${avail ? `selectHomeHour('${hr}')` : ''}">${hr}</button>`;
+            });
+            html += `</div>`;
+        }
+        html += `</div>`;
+        document.getElementById('homeCalendarContainer').innerHTML = html;
+        document.getElementById('homePrevMonth')?.addEventListener('click', () => { if (!isPastMonth) { homeCalendarDate.setMonth(homeCalendarDate.getMonth() - 1); renderHomeCalendar(); } });
+        document.getElementById('homeNextMonth')?.addEventListener('click', () => { if (!isNextOverLimit) { homeCalendarDate.setMonth(homeCalendarDate.getMonth() + 1); renderHomeCalendar(); } });
+    }
+
+    function selectHomeDay(ds) { homeSelectedDate = ds; homeSelectedHour = null; renderHomeCalendar(); }
+    function selectHomeHour(hr) { if (homeSelectedDate) { homeSelectedHour = hr; renderHomeCalendar(); } }
+
+    function toggleBottomMenu() { document.getElementById('bottomMenu').classList.toggle('open'); document.getElementById('menuOverlay').classList.toggle('active'); }
+    function switchTabFromMenu(id) { toggleBottomMenu(); switchTab(id); }
+    
+    function clearBlurAndScale() {
+        if (activePhotoId) { var el = document.getElementById(activePhotoId); if (el) el.classList.remove('sharp-and-big'); activePhotoId = null; }
+        document.getElementById('blurModal').classList.remove('active'); if (activeBlurTimeout) clearTimeout(activeBlurTimeout);
+    }
+    
+    function showBlurAndScalePhoto(pid, src) {
+        if (currentTab === 'faq' && src === 'faq') return;
+        clearBlurAndScale();
+        var fn = function() {
+            var t = document.getElementById(pid);
+            if (t) { t.scrollIntoView({behavior: 'smooth', block: 'center'}); t.classList.add('sharp-and-big'); activePhotoId = pid; document.getElementById('blurModal').classList.add('active'); activeBlurTimeout = setTimeout(clearBlurAndScale, 3000); }
+        };
+        if (currentTab !== 'faq') { switchTab('faq'); setTimeout(fn, 200); } else fn();
+    }
+
+    function switchTab(tabId) {
+        currentTab = tabId;
+        let hero = document.getElementById('heroContainer'), content = document.getElementById('dynamicContent');
+        document.querySelectorAll('.bottom-menu-items a[data-tab]').forEach(link => link.classList.toggle('active', link.getAttribute('data-tab') === tabId));
+
+        if (tabId === 'home') {
+            hero.innerHTML = `<div class="hero-carousel-container"><div class="hero-carousel" id="heroCarousel"><div class="carousel-slide">${slides[0]}</div><div class="carousel-slide">${slides[1]}</div><div class="carousel-slide">${slides[2]}</div></div><button class="carousel-arrow left" onclick="prevSlide()">‹</button><button class="carousel-arrow right" onclick="nextSlide()">›</button><div class="carousel-dots"><div class="carousel-dot active" onclick="goToSlide(0)"></div><div class="carousel-dot" onclick="goToSlide(1)"></div><div class="carousel-dot" onclick="goToSlide(2)"></div></div></div>`;
+            content.innerHTML = `<div class="section-with-lines">Nasze usługi</div><div class="services-vertical"><div class="service-card"><h4>Sprzątanie mieszkań i terenów prywatnych</h4><p>Regularne i generalne sprzątanie mieszkań, domów i prywatnych przestrzeni.</p><button class="service-btn" onclick="triggerTransition('photo1')">Szczegóły</button></div><div class="service-card"><h4>Dwie opcje sprzątania</h4><p>Sprzątamy z użyciem zwykłej chemii lub środków bio. Wybór należy do Ciebie.</p><button class="service-btn" onclick="triggerTransition('photo2')">Szczegóły</button></div><div class="service-card"><h4>Własny sprzęt</h4><p>Korzystamy z własnego profesjonalnego sprzętu i wysokiej jakości środków czystości.</p><button class="service-btn" onclick="triggerTransition('photo3')">Szczegóły</button></div><div class="service-card"><h4>Łatwa rezerwacja online</h4><p>Zarezerwuj sprzątanie wygodnie online w dogodnym dla Ciebie terminie.</p><button class="service-btn" onclick="triggerTransition('photo4')">Szczegóły</button></div></div><div class="section-with-lines">Oszczędzamy Twój czas!</div><div class="why-us-box"><div class="client-type-selector"><button class="client-type-btn active" data-home-type="osoba" id="homeOsobaBtn">Osoba prywatna</button><button class="client-type-btn" data-home-type="firma" id="homeFirmaBtn">Firma</button></div><div class="why-us-tabs"><div class="why-us-tab active" data-why-tab="calculator">Kalkulator</div><div class="why-us-tab" data-why-tab="calendar">Kalendarz</div></div><div class="why-us-tab-content active" id="whyTabCalculator"><div id="calcDynamicFields"></div><div class="calc-price-result" id="calcPriceResult">Cena: 0 zł</div></div><div class="why-us-tab-content" id="whyTabCalendar"><div id="homeCalendarContainer"></div></div></div>`;
+            function setHomeClientType(type) { homeClientType = type; document.getElementById('homeOsobaBtn').classList.toggle('active', type === 'osoba'); document.getElementById('homeFirmaBtn').classList.toggle('active', type === 'firma'); updateInlineCalculator(); renderHomeCalendar(); }
+            function updateInlineCalculator() {
+                let html = ''; 
+                if (homeClientType === 'osoba') { 
+                    html = `<div class="calc-row-inline"><select id="calcRooms"><option value="">Liczba pokoi</option><option value="kawalerka">Kawalerka</option><option value="2pokoje">2 pokoje</option><option value="3pokoje">3 pokoje</option></select></div><div class="calc-row-inline"><select id="calcTyp"><option value="">Typ sprzątania</option><option value="powierzchniowe">Powierzchniowe</option><option value="generalne">Generalne</option></select></div><div class="calc-row-inline"><select id="calcChemia"><option value="">Rodzaj chemii</option><option value="chem">Profesjonalna chemia</option><option value="bio">Biochemia</option></select></div>`; 
+                } else { 
+                    html = `<div class="calc-row-inline"><select id="calcRodzaj"><option value="">Rodzaj</option><option value="biura">Biura</option><option value="gastronomia">Gastronomia</option><option value="warsztaty">Warsztaty</option><option value="hotele">Hotele</option></select></div><div class="calc-row-inline"><input type="number" id="calcMetry" placeholder="Metry kwadratowe" min="1"></div><div class="calc-row-inline"><select id="calcTyp"><option value="">Typ sprzątania</option><option value="powierzchniowe">Powierzchniowe</option><option value="generalne">Generalne</option></select></div><div class="calc-row-inline"><select id="calcChemia"><option value="">Rodzaj chemii</option><option value="chem">Profesjonalna chemia</option><option value="bio">Biochemia</option></select></div>`; 
+                }
+                document.getElementById('calcDynamicFields').innerHTML = html;
+                document.querySelectorAll('#calcRooms, #calcMetry, #calcTyp, #calcChemia, #calcRodzaj').forEach(el => { if (el) el.addEventListener('change', recalcInlinePrice); });
+                recalcInlinePrice();
+            }
+            function recalcInlinePrice() { let price = 0; if (homeClientType === 'osoba') { let rooms = document.getElementById('calcRooms')?.value, typ = document.getElementById('calcTyp')?.value, chem = document.getElementById('calcChemia')?.value; if (rooms && typ && chem && cenyOsoba[rooms] && cenyOsoba[rooms][typ] && cenyOsoba[rooms][typ][chem]) price = cenyOsoba[rooms][typ][chem]; } else { let rodzaj = document.getElementById('calcRodzaj')?.value, metry = parseInt(document.getElementById('calcMetry')?.value || 0); let typ = document.getElementById('calcTyp')?.value, chem = document.getElementById('calcChemia')?.value; if (rodzaj && metry > 0 && typ && chem && cenyFirma[rodzaj] && cenyFirma[rodzaj][typ] && cenyFirma[rodzaj][typ][chem]) price = cenyFirma[rodzaj][typ][chem] * metry; } document.getElementById('calcPriceResult').innerHTML = `Cena: ${price} zł`; }
+            document.getElementById('homeOsobaBtn').addEventListener('click', () => setHomeClientType('osoba'));
+            document.getElementById('homeFirmaBtn').addEventListener('click', () => setHomeClientType('firma'));
+            updateInlineCalculator(); renderHomeCalendar();
+            document.querySelectorAll('.why-us-tab').forEach(tab => { tab.addEventListener('click', () => { document.querySelectorAll('.why-us-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.why-us-tab-content').forEach(c => c.classList.remove('active')); tab.classList.add('active'); document.getElementById(`whyTab${tab.dataset.whyTab.charAt(0).toUpperCase() + tab.dataset.whyTab.slice(1)}`).classList.add('active'); if (tab.dataset.whyTab === 'calendar') { renderHomeCalendar(); } }); });
+            startCarousel();
+        } else if (tabId === 'services') {
+            hero.innerHTML = '<div class="hero-widget-placeholder" style="min-height:180px;"><div class="hero-text-overlay"><div class="hero-widget1-title"><div class="widget-blue-lighter">Wybierz</div><div class="widget-blue-light">Odpowiednią</div><div class="widget-blue-lighter">Opcję</div><div class="widget-blue-light">dla Siebie</div></div></div></div>';
+            content.innerHTML = '<div class="section-with-lines">Dla klientów indywidualnych</div><div class="price-description">Cena zależy od liczby pokoi</div><div class="price-table-wrapper"><table class="price-table"><thead><tr><th>Liczba pokoi</th><th class="col-chem">Powierzchniowe sprzątanie<br>chemia gospodarcza</th><th class="col-biochem">Powierzchniowe sprzątanie<br>biochemia</th><th class="col-general-chem">Generalne sprzątanie<br>chemia gospodarcza</th><th class="col-general-biochem">Generalne sprzątanie<br>biochemia</th></tr></thead><tbody><tr><td class="first-col">Kawalerka</td><td class="chem-price">199 zł</td><td class="biochem-price">239 zł</td><td class="general-chem-price">349 zł</td><td class="general-biochem-price">399 zł</td></tr><tr><td class="first-col">2 pokoje</td><td class="chem-price">279 zł</td><td class="biochem-price">329 zł</td><td class="general-chem-price">479 zł</td><td class="general-biochem-price">549 zł</td></tr><tr><td class="first-col">3 pokoje</td><td class="chem-price">359 zł</td><td class="biochem-price">419 zł</td><td class="general-chem-price">599 zł</td><td class="general-biochem-price">679 zł</td></tr></tbody></table></div><div class="biochemia-section" onclick="toggleDescription(\'bioDesc\')"><span class="info-icon">i</span><span>Biochemia to bezpieczne środki</span></div><div id="bioDesc" class="toggle-description"><p>Ekologiczne, bezpieczne dla ludzi i zwierząt.</p></div><button class="more-info-btn" onclick="triggerTransition(\'photo1\')">Więcej informacji</button><div class="section-with-lines">Dla firm</div><div class="price-description">Cena za m&sup2;</div><div class="price-table-wrapper"><table class="price-table"><thead><tr><th>Rodzaj obiektu</th><th class="col-chem">Powierzchniowe sprzątanie<br>chemia gospodarcza</th><th class="col-biochem">Powierzchniowe sprzątanie<br>biochemia</th><th class="col-general-chem">Generalne sprzątanie<br>chemia gospodarcza</th><th class="col-general-biochem">Generalne sprzątanie<br>biochemia</th></tr></thead><tbody><tr><td class="first-col">Biura</td><td class="chem-price">7 zł/m²</td><td class="biochem-price">9 zł/m²</td><td class="general-chem-price">13 zł/m²</td><td class="general-biochem-price">16 zł/m²</td></tr><tr><td class="first-col">Gastronomia</td><td class="chem-price">9 zł/m²</td><td class="biochem-price">11 zł/m²</td><td class="general-chem-price">16 zł/m²</td><td class="general-biochem-price">19 zł/m²</td></tr><tr><td class="first-col">Warsztaty</td><td class="chem-price">8 zł/m²</td><td class="biochem-price">10 zł/m²</td><td class="general-chem-price">14 zł/m²</td><td class="general-biochem-price">17 zł/m²</td></tr><tr><td class="first-col">Hotele</td><td class="chem-price">6 zł/m²</td><td class="biochem-price">8 zł/m²</td><td class="general-chem-price">11 zł/m²</td><td class="general-biochem-price">14 zł/m²</td></tr></tbody></table></div><div class="biochemia-section" onclick="toggleDescription(\'cenaDesc\')"><span class="info-icon">i</span><span>Cena zależy od powierzchni</span></div><div id="cenaDesc" class="toggle-description"><p>Indywidualna wycena dla firm.</p></div><button class="more-info-btn" onclick="triggerTransition(\'photo1\')">Więcej informacji</button><div class="section-with-lines">Gwarantujemy</div><div class="white-frame-cards"><div class="white-frame-card"><h4>Elastyczne terminy</h4><p>Dopasujemy się do Twojego harmonogramu</p></div><div class="white-frame-card"><h4>Bezpieczeństwo</h4><p>Nasi pracownicy są sprawdzani i noszą kamery na piersi podczas sprzątania</p></div><div class="white-frame-card"><h4>Gwarancja jakości</h4><p>Sprzątamy dokładnie i profesjonalnie</p></div></div>';
+        } else if (tabId === 'about') {
+            hero.innerHTML = '';
+            content.innerHTML = `<div class="about-founder-box"><img src="MyPhoto.jpg" alt="Andrii Vuichych" class="about-founder-photo" onerror="this.style.display='none'"><div class="about-founder-text"><h3>Andrii Vuichych</h3><div class="founder-name">Jako założyciel zauważyłem, że wiele firm sprzątających nie zapewnia klientom pełnego bezpieczeństwa, stałego kontaktu ani wygodnego zarządzania usługą. Dlatego stworzyłem usługę opartą na zweryfikowanym personelu, gwarancji bezpieczeństwa i nowoczesnym systemie rezerwacji online, dzięki któremu klient może zamówić usługę, śledzić jej status oraz zmienić termin w dowolnym momencie. Oprócz wygodnej rezerwacji online klient zawsze może również skontaktować się z nami telefonicznie, aby uzyskać dodatkowe informacje lub pomoc.</div></div></div><div class="about-firm-section"><h3>O firmie</h3><p>Nasza firma oferuje nowoczesne usługi sprzątające stworzone z naciskiem на безопасность, wygodę oraz przejrzystość obsługi. Rozumiemy, że dla wielu klientów kluczowe znaczenie ma nie tylko efekt sprzątania, ale również poczucie bezpieczeństwa podczas korzystania z usługi.</p><p>Dlatego wdrożyliśmy system oparty na odpowiedzialności i kontroli. Każdy członek personelu przechodzi proces weryfikacji oraz regularne kontrole, co zwiększa poziom bezpieczeństwa i minimalizuje ryzyko niepożądanych sytuacji. Klient otrzymuje również gwarancję jakości — usługa uznawana jest za zakończoną dopiero po osobistym sprawdzeniu lokalu i potwierdzeniu satysfakcji.</p><p>Dbamy o elastyczność obsługi, dlatego umożliwiamy zarówno klasyczny kontakt telefoniczny, jak i pełną rezerwację online. Klienci mogą w wygodny sposób złożyć zamówienie, zarządzać usługą oraz śledzić status realizacji. System online został stworzony szczególnie dla osób, które chcą szybko zarezerwować usługę bez konieczności wykonywania wielu telefonów czy prowadzenia korespondencji.</p><p>Naszym celem jest stworzenie wielofunkcyjnego i nowoczesnego serwisu sprzątającego, który łączy bezpieczeństwo mienia, wygodę obsługi oraz transparentne zasady współpracy.</p></div>`;
+        } else if (tabId === 'faq') {
+            hero.innerHTML = '<div class="hero-widget-placeholder" style="min-height:180px;"><div class="hero-text-overlay3"><div class="hero-title-large widget-blue-lighter">Pytania<br>i odpowiedzi</div></div></div>';
+            content.innerHTML = '<div class="faq-header-section"><div class="faq-title-wrapper"><div class="blue-line"></div><div class="faq-title">Najczęstsze pytania</div><div class="blue-line"></div></div></div><div class="accordion-container"><div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><div class="accordion-title">Jak przebiega zamówienie sprzątania?</div><div class="accordion-toggle">+</div></div><div class="accordion-content"><div class="accordion-content-inner">Zamówienie można złożyć telefonicznie, przez media społecznościowe lub przez stronę.</div></div></div><div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><div class="accordion-title">Jak działają zniżki?</div><div class="accordion-toggle">+</div></div><div class="accordion-content"><div class="accordion-content-inner">10% na pierwsze sprzątanie, 12,5% przy umowie na 8 wizyt.</div></div></div><div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><div class="accordion-title">Jakich środków używamy?</div><div class="accordion-toggle">+</div></div><div class="accordion-content"><div class="accordion-content-inner">Karcher, Grass, Pro-Brite, Synergetic, HG.</div></div></div><div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><div class="accordion-title">Jak działa gwarancja?</div><div class="accordion-toggle">+</div></div><div class="accordion-content"><div class="accordion-content-inner">Klient sprawdza jakość, ewentualne uwagi poprawiamy od razu.</div></div></div><div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><div class="accordion-title">Bezpieczne sprzątanie</div><div class="accordion-toggle">+</div></div><div class="accordion-content"><div class="accordion-content-inner">Kamery nasobne dla bezpieczeństwa.</div></div></div><div class="accordion-item"><div class="accordion-header" onclick="toggleAccordion(this)"><div class="accordion-title">Co oznacza sprzątanie powierzchniowe?</div><div class="accordion-toggle">+</div></div><div class="accordion-content"><div class="accordion-content-inner">Powierzchniowe - widoczne powierzchnie. Generalne - także wnętrza mebli.</div></div></div></div><div class="faq-header-section"><div class="faq-title-wrapper"><div class="blue-line"></div><div class="faq-title">Ważne pytania</div><div class="blue-line"></div></div></div><div class="about-widgets-container"><div class="about-widget" id="photo1"><div class="widget-title"><span class="widget-number">1</span> Sprzątanie mieszkań i terenów prywatnych</div><div class="widget-description">Działamy na terenie Polski, wystawiamy faktury VAT. Sprzątamy mieszkania, domy, firmy. Cena według liczby pokoi lub m&sup2;.</div></div><div class="about-widget" id="photo2"><div class="widget-title"><span class="widget-number">2</span> Dwie opcje sprzątania</div><div class="widget-description">Standardowe (chemia) lub ekologiczne (biochemia). Biochemia bezpieczna dla dzieci i zwierząt.</div></div><div class="about-widget" id="photo3"><div class="widget-title"><span class="widget-number">3</span> Własny sprzęt</div><div class="widget-description">Przyjeżdżamy z własnym profesjonalnym sprzętem i środkami. Klient nic nie zapewnia.</div></div><div class="about-widget" id="photo4"><div class="widget-title"><span class="widget-number">4</span> Łatwa rezerwacja online</div><div class="widget-description">Rezerwacja przez telefon, social media lub formularz online 24/7.</div></div><div class="about-widget" id="photo5"><div class="widget-title"><span class="widget-number">5</span> Bezpieczeństwo</div><div class="widget-description">Kamery nasobne - rejestrujemy cały proces sprzątania.</div></div><div class="about-widget" id="photo6"><div class="widget-title"><span class="widget-number">6</span> Gwarancja jakości</div><div class="widget-description">Protokół przed sprzątaniem, płatność po akceptacji klienta.</div></div></div>';
+        }
+    }
+
+    window.prevSlide = prevSlide;
+    window.nextSlide = nextSlide;
+    window.goToSlide = goToSlide;
+    window.toggleBottomMenu = toggleBottomMenu;
+    window.switchTabFromMenu = switchTabFromMenu;
+    window.triggerTransition = function(pid) { showBlurAndScalePhoto(pid, 'external'); };
+    window.toggleDescription = (id) => document.getElementById(id).classList.toggle('show');
+    window.toggleAccordion = (el) => { let it = el.closest('.accordion-item'); it.classList.toggle('active'); it.querySelector('.accordion-toggle').innerHTML = it.classList.contains('active') ? '−' : '+'; };
+    window.selectHomeDay = selectHomeDay;
+    window.selectHomeHour = selectHomeHour;
+    window.confirmDateChange = confirmDateChange;
+    window.removeNotification = removeNotification;
+    window.closeNotificationPanel = closeNotificationPanel;
+    window.closeSubDateSelector = closeSubDateSelector;
+    window.openAccountModal = openAccountModal;
+    window.closeAccountModal = closeAccountModal;
+    window.logoutFromAccount = logoutFromAccount;
+    window.openHistoryFromAccount = openHistoryFromAccount;
+
+    document.getElementById('loginTrigger').addEventListener('click', (e) => { e.stopPropagation(); isLoggedIn ? openAccountModal() : showModal(); });
+    document.getElementById('closeModalBtn').addEventListener('click', hideModal);
+    document.getElementById('blurModal').addEventListener('click', function(e) { 
+        if (activeBlurTimeout) { clearTimeout(activeBlurTimeout); clearBlurAndScale(); } 
+        else if (document.getElementById('accountModal').classList.contains('active')) { closeAccountModal(); }
+        else { hideModal(); } 
+    });
+    document.getElementById('closeHistoryBtn').addEventListener('click', closeHistory);
+    document.querySelectorAll('.tab-btn').forEach(b => { b.addEventListener('click', () => { document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); setModalMode(b.getAttribute('data-mode')); }); });
+    document.getElementById('submitBtn').addEventListener('click', handleAuth);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !activeBlurTimeout) {
+            if (document.getElementById('accountModal').classList.contains('active')) closeAccountModal();
+            if (document.getElementById('loginModal').classList.contains('active')) hideModal();
+            if (document.getElementById('clientTypeOverlay').classList.contains('active')) closeClientTypeOverlay();
+            if (document.getElementById('historyOverlay').classList.contains('active')) closeHistory();
+            if (document.getElementById('orderPage').classList.contains('active')) closeOrderPage();
+            if (document.getElementById('datePickerOverlay').classList.contains('open')) closeDatePicker();
+            if (document.getElementById('confirmationModal').classList.contains('active')) closeConfirmationModal();
+            if (document.getElementById('calendarViewModal').classList.contains('active')) closeCalendarView();
+        }
+    });
+    document.getElementById('orderFromMenuBtn').addEventListener('click', (e) => { e.preventDefault(); openClientTypeOverlay(); });
+    document.getElementById('footerOrderBtn').addEventListener('click', () => { openClientTypeOverlay(); });
+    document.getElementById('closeOrderBtn').addEventListener('click', closeOrderPage);
+    document.getElementById('downloadPdfBtn').addEventListener('click', downloadRegulamin);
+    document.getElementById('downloadAbonamentPdfBtn').addEventListener('click', downloadAbonamentRegulamin);
+    document.getElementById('saveDataBtn').addEventListener('click', handleSaveOrLoad);
+    document.getElementById('submitOrderBtn').addEventListener('click', submitOrder);
+    document.getElementById('closeConfirmationBtn').addEventListener('click', closeConfirmationModal);
+    document.getElementById('openDatePickerBtn').addEventListener('click', openDatePicker);
+    document.getElementById('closeDatePickerBtn').addEventListener('click', closeDatePicker);
+    document.getElementById('btnClientOsoba').addEventListener('click', () => selectClientType('osoba'));
+    document.getElementById('btnClientFirma').addEventListener('click', () => selectClientType('firma'));
+    document.getElementById('closeClientTypeBtn').addEventListener('click', closeClientTypeOverlay);
+    document.getElementById('subSingle').addEventListener('click', () => setSubscription('single'));
+    document.getElementById('subAbonament').addEventListener('click', () => setSubscription('abonament'));
+    ['roomsSelect', 'osobaTypSprzatania', 'osobaChemia'].forEach(id => { document.getElementById(id).addEventListener('change', calculateOsobaPrice); });
+    ['firmaRodzaj', 'firmaTypSprzatania', 'firmaChemia'].forEach(id => { document.getElementById(id).addEventListener('change', calculateFirmaPrice); });
+    document.getElementById('firmaMetry').addEventListener('input', calculateFirmaPrice);
+    ['firstName', 'lastName', 'email', 'address', 'confirmTextInput', 'orderNotes'].forEach(id => { let el = document.getElementById(id); if (el) el.addEventListener('input', () => { anyFieldEdited = true; updateSaveButtonState(); updateSubmitButtonState(); removeAllHighlights(); }); });
+    document.getElementById('acceptTermsCheckbox').addEventListener('change', () => { anyFieldEdited = true; updateSaveButtonState(); updateSubmitButtonState(); removeAllHighlights(); });
+    document.getElementById('proceedToOrderBtn').addEventListener('click', () => { closeCalendarView(); openClientTypeOverlay(); });
+    document.getElementById('closeCalendarViewBtn').addEventListener('click', closeCalendarView);
+
+    window.openOrderPage = () => openClientTypeOverlay();
+    loadBookedSlots();
+    loadCancelCounts();
+    switchTab('home');
+    updateSubmitButtonState();
+</script>
+</body>
+</html>
